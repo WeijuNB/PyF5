@@ -7,6 +7,7 @@ import cPickle
 from StringIO import StringIO
 
 from tornado.web import StaticFileHandler, RequestHandler, asynchronous, HTTPError
+from tornado import ioloop
 
 from utils import app_path, get_rel_path, we_are_frozen
 from zfs import ZipFileSystem
@@ -77,20 +78,27 @@ class StaticSiteHandler(StaticFileHandler):
 
 
 class ChangeRequestHandler(RequestHandler):
-    def initialize(self, refresher):
-        self.refresher = refresher
-        self.refresher.change_request_handlers.add(self)
+    def initialize(self):
+        self.application.change_request_handlers.add(self)
 
         self.callback = self.get_argument('callback', '_F5.handleChanges')
         self.max_pending_time = 20
         self.query_time = time.time()
 
         deadline = time.time() + self.max_pending_time
-        self.timeout = self.refresher._loop.add_timeout(deadline, lambda: self.return_changes([]))
+        self.timeout = ioloop.IOLoop.instance().add_timeout(deadline, lambda: self.return_changes([]))
 
     @asynchronous
     def get(self):
         pass
+
+    def change_happened(self, all_changes):
+        changes = []
+        for change in all_changes:
+            if change > self.query_time:
+                changes.append(change)
+        if changes:
+            self.return_changes(changes)
 
     def return_changes(self, changes):
         ret = {
@@ -101,11 +109,8 @@ class ChangeRequestHandler(RequestHandler):
         print ret
         self.write(ret)
         self.finish()
-        self.refresher._loop.remove_timeout(self.timeout)
-        self.refresher.change_request_handlers.remove(self)
-
-    def post(self):
-        pass
+        ioloop.IOLoop.instance().remove_timeout(self.timeout)
+        self.application.change_request_handlers.remove(self)
 
 
 if __name__ == '__main__':

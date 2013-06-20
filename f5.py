@@ -23,50 +23,29 @@ if debug and not we_are_frozen():
 Change = namedtuple('Change', 'time, path, type')
 
 
-class ReloadServer(Thread, FileSystemEventHandler):
-    def __init__(self, port, path=None):
-        Thread.__init__(self)
-
-        if not path:
-            path = module_path()
-        self.path = path
-        handlers = [
-            (r"/_/changes", ChangeRequestHandler, dict(refresher=self)),
-            (r"/_/(.*)", AssetsHandler, {"path": os.path.join(module_path(), 'assets')}),
-            (r"/(.*)", StaticSiteHandler, {"path": path}),
-        ]
-        settings = {"debug": debug}
-        self.port = port
-
-        self.server = Application(handlers, **settings)
-        self.server.listen(self.port)
-
+class ChangesObserver(FileSystemEventHandler):
+    def __init__(self, changes_handler=None):
         self.observer = Observer()
-        self.observer.schedule(self, path, recursive=True)
-
-        self.change_request_handlers = set()
-        self.changes = []  # list of Change within a certain period
+        self.changes = []
+        self.black_list = []
+        self.path = None
+        self.changes_handler = changes_handler
         self.changes_timer = None
 
-        self._stop = False
-        self.daemon = True
+    def start_observe(self, path):
+        self.path = path
+        self.observer.schedule(self, self.path, recursive=True)
+        self.observer.start()
+
+    def add_black_list(self, path_name_list):
+        self.black_list = path_name_list
 
     def stop(self):
-        print 'Stop.'
-        self._stop = self.__stop()
-        self._loop.stop()
-
-    def run(self):
-        print 'Start.'
-        self._loop = ioloop.IOLoop.instance()
-        self.observer.start()
-        self._loop.start()
+        self.observer.stop()
 
     def get_changes_since(self, ts):
         ret = []
         for change in self.changes:
-            if '.idea' in change.path:
-                continue
             if change[0] >= ts:
                 ret.append(change)
         return ret
@@ -84,11 +63,20 @@ class ReloadServer(Thread, FileSystemEventHandler):
         else:
             self.add_pure_change(Change(time.time(), rel_src_path, event.event_type))
 
-        self._loop.add_callback(self.handle_changes)
+        ioloop.IOLoop.instance().add_callback(self.refresh_change_timer)
 
-    def add_pure_change(self, change):
+    def refresh_change_timer(self):
+        loop = ioloop.IOLoop.instance()
+        if self.changes_timer:
+            loop.remove_timeout(self.changes_timer)
+        self.changes_timer = loop.add_timeout(time.time() + 0.1, self.change_happened)
+
+    def change_happened(self):
+        if self.changes_handler and callable(self.changes_handler):
+            ioloop.IOLoop.instance().add_callback(self.changes_handler)
+
+    def find_related_trash_changes(self, change):
         trash_changes = []
-        trash_changes_valid = False
         for old_change in self.changes[::-1]:
             if old_change.path != change.path or change.time - old_change.time > 0.1:
                 continue
@@ -96,17 +84,19 @@ class ReloadServer(Thread, FileSystemEventHandler):
             if change.type == EVENT_TYPE_DELETED:
                 trash_changes.append(old_change)
                 if old_change.type == EVENT_TYPE_CREATED:
-                    trash_changes_valid = True
-                    break
+                    return trash_changes
             elif change.type == EVENT_TYPE_CREATED:
                 trash_changes.append(old_change)
                 if old_change.type == EVENT_TYPE_DELETED:
-                    trash_changes_valid = True
-                    break
+                    return trash_changes
+        return []
 
-        if not trash_changes_valid:
-            trash_changes = []
+    def add_pure_change(self, change):
+        for path_name in self.black_list:
+            if path_name in change.path:
+                return
 
+        trash_changes = self.find_related_trash_changes(change)
         if trash_changes:
             for change in trash_changes:
                 self.changes.remove(change)
@@ -117,39 +107,48 @@ class ReloadServer(Thread, FileSystemEventHandler):
         self.remove_outdated_changes(30)
 
     def remove_outdated_changes(self, seconds):
-        while 1:
-            if len(self.changes) == 0:
-                break
-            change = self.changes[0]
+        for change in self.changes[:]:
             if change.time - time.time() > seconds:
-                self.changes.pop(0)
-            else:
-                break
+                try:
+                    self.changes.remove(change)
+                except ValueError:
+                    pass
 
-    def handle_changes(self):
-        if self.changes_timer:
-            self._loop.remove_timeout(self.changes_timer)
-        self.changes_timer = self._loop.add_timeout(time.time() + 0.1, self.respond_change_requests)
 
-    def respond_change_requests(self):
-        if self.change_request_handlers:
-            for handler in list(self.change_request_handlers):
-                changes = self.get_changes_since(handler.query_time)
-                if changes:
-                    handler.return_changes(changes)
+class F5Server(Application):
+    def __init__(self, handlers=None, default_host="", transforms=None, wsgi=False, **settings):
+        if not handlers:
+            handlers = [
+                (r"/_/changes", ChangeRequestHandler),
+                (r"/_/(.*)", AssetsHandler, {"path": os.path.join(module_path(), 'assets')}),
+            ]
+        if not settings:
+            settings = {'debug': debug}
+        if not default_host:
+            default_host = '.*$'
 
+        Application.__init__(self, handlers, default_host, transforms, wsgi, **settings)
+        self.change_request_handlers = set()
+
+    def set_site_path(self, path):
+        self.add_handlers(".*$", [
+            (r"/(.*)", StaticSiteHandler, {"path": path})
+        ])
+        handle = self.handlers.pop(0)
+        self.handlers.append(handle)
+        self.observer = ChangesObserver(self.change_happened)
+        self.observer.start_observe(path)
+
+    def change_happened(self):
+        for handler in list(self.change_request_handlers):
+            handler.change_happened(self.observer.changes)
 
 if __name__ == "__main__":
+    path = 'D:/PROJECTS/Working/markman/src/web'
+    server = F5Server()
+    server.listen(80)
+    server.set_site_path(path)
     try:
-        if debug and not we_are_frozen():
-            path = 'D:/PROJECTS/Working/markman/src/web'
-        else:
-            path = None
-
-        server = ReloadServer(80, path)
-        server.start()
-        while True:
-            time.sleep(5)
+        ioloop.IOLoop.instance().start()
     except KeyboardInterrupt:
-        print 'Exit.'
-        sys.exit(0)
+        print 'exit'
