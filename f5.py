@@ -14,6 +14,10 @@ from tornado.web import Application
 from utils import module_path, get_rel_path, we_are_frozen
 from handlers import StaticFileHandlerWithoutCache, HtmlFileHandler, ChangeRequestHandler, AssetsHandler
 
+debug = True
+if debug and not we_are_frozen():
+    AssetsHandler = StaticFileHandlerWithoutCache
+
 
 Change = namedtuple('Change', 'time, path, type')
 
@@ -27,11 +31,11 @@ class ReloadServer(Thread, FileSystemEventHandler):
         self.path = path
         handlers = [
             (r"/_f5/changes", ChangeRequestHandler, dict(refresher=self)),
-            (r"/_f5/(.*)", AssetsHandler if we_are_frozen() else StaticFileHandlerWithoutCache, {"path": os.path.join(module_path(), 'assets')}),
+            (r"/_f5/(.*)", AssetsHandler, {"path": os.path.join(module_path(), 'assets')}),
             (r"/(.*\.(:?html|htm|shtml))", HtmlFileHandler, {"path": path}),
             (r"/(.*)", StaticFileHandlerWithoutCache, {"path": path}),
         ]
-        settings = {"debug": True}
+        settings = {"debug": debug}
         self.port = port
 
         self.server = Application(handlers, **settings)
@@ -137,7 +141,12 @@ class ReloadServer(Thread, FileSystemEventHandler):
 
 if __name__ == "__main__":
     try:
-        server = ReloadServer(80)
+        if debug and not we_are_frozen():
+            path = 'D:/PROJECTS/Working/markman/src/web'
+        else:
+            path = None
+
+        server = ReloadServer(80, path)
         server.start()
         while True:
             time.sleep(5)
