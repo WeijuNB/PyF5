@@ -9,14 +9,15 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, \
     EVENT_TYPE_CREATED, EVENT_TYPE_DELETED, EVENT_TYPE_MOVED
 from tornado import ioloop
-from tornado.web import Application
+from tornado.web import Application, StaticFileHandler
 
 from utils import module_path, get_rel_path, we_are_frozen
-from handlers import StaticFileHandlerWithoutCache, HtmlFileHandler, ChangeRequestHandler, AssetsHandler
+from handlers import ChangeRequestHandler, AssetsHandler, StaticSiteHandler
 
 debug = True
 if debug and not we_are_frozen():
-    AssetsHandler = StaticFileHandlerWithoutCache
+    # 开发模式下面AssetsHandler就直接从开发目录下面读取assets
+    AssetsHandler = StaticFileHandler
 
 
 Change = namedtuple('Change', 'time, path, type')
@@ -30,10 +31,9 @@ class ReloadServer(Thread, FileSystemEventHandler):
             path = module_path()
         self.path = path
         handlers = [
-            (r"/_f5/changes", ChangeRequestHandler, dict(refresher=self)),
-            (r"/_f5/(.*)", AssetsHandler, {"path": os.path.join(module_path(), 'assets')}),
-            (r"/(.*\.(:?html|htm|shtml))", HtmlFileHandler, {"path": path}),
-            (r"/(.*)", StaticFileHandlerWithoutCache, {"path": path}),
+            (r"/_/changes", ChangeRequestHandler, dict(refresher=self)),
+            (r"/_/(.*)", AssetsHandler, {"path": os.path.join(module_path(), 'assets')}),
+            (r"/(.*)", StaticSiteHandler, {"path": path}),
         ]
         settings = {"debug": debug}
         self.port = port

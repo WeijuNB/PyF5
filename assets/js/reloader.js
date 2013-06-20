@@ -170,9 +170,9 @@
         for (i = 0; i < scripts.length; i ++) {
             script = scripts[i];
             src = script.src;
-            if (src.indexOf('_f5/js/reloader.js') > -1) {
+            if (src.indexOf('_/js/reloader.js') > -1) {
                 authority = UrlUtils.parseUrl(src).authority; // jblas:password@mycompany.com:8080
-                return 'http://' + (authority ? authority : location.host) + '/_f5/';
+                return 'http://' + (authority ? authority : location.host) + '/_/';
             }
         }
     }
@@ -251,7 +251,7 @@
         var y = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
         cookie('__F5ScrollY', y);
         setTimeout(function() {
-            location.reload(true);
+            location.reload();
         }, 200); //刷新太快的话，有些动态网页显示的还是未更新前的页面
     }
 

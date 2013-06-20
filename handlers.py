@@ -13,51 +13,67 @@ from zfs import ZipFileSystem
 from assets import assets_zip64
 
 
-zfs = None
-if we_are_frozen():
-    assets_zip_file = StringIO(base64.decodestring(assets_zip64))
-    zfs = ZipFileSystem(assets_zip_file)
+assets_zip_file = StringIO(base64.decodestring(assets_zip64))
+zfs = ZipFileSystem(assets_zip_file)
 
 
-class StaticFileHandlerWithoutCache(StaticFileHandler):
-    def should_return_304(self):
-        return False
+class AssetsHandler(StaticFileHandler):
+    def initialize(self, path, default_filename=None):
+        StaticFileHandler.initialize(self, path, default_filename)
 
-
-class AssetsHandler(StaticFileHandlerWithoutCache):
-    def initialize(self, path, default_name=None):
-        StaticFileHandlerWithoutCache.initialize(self, path, default_name)
-        self.rel_path = get_rel_path(self.request.path, '/_f5/')
+    def prepare(self):
+        self.asset_path = self.path_args[0]
 
     @classmethod
     def get_content(cls, abspath, start=None, end=None):
-        rel_path = get_rel_path(abspath, app_path())
-        return zfs.read(rel_path)
+        rel_path = get_rel_path(abspath, 'assets://')
+        content = zfs.read(rel_path)
+        return content
 
     def get_content_size(self):
-        return zfs.file_size(self.rel_path) or 0
+        return zfs.file_size(self.asset_path) or 0
 
     def get_modified_time(self):
-        return int(zfs.modified_at(self.rel_path)) or 0
+        return int(zfs.modified_at(self.asset_path)) or 0
+
+    @classmethod
+    def get_absolute_path(cls, root, path):
+        return os.path.join('assets://', path)
 
     def validate_absolute_path(self, root, absolute_path):
-        if not zfs.file_size(self.rel_path):
+        if not zfs.file_size(self.asset_path):
             raise HTTPError(404)
         return absolute_path
 
 
-class HtmlFileHandler(StaticFileHandlerWithoutCache):
-    SCRIPT_AND_END_OF_BODY = '<script id="_f5_script" src="_f5/js/reloader.js"></script>\n</body>'
+class StaticSiteHandler(StaticFileHandler):
+    SCRIPT_AND_END_OF_BODY = '<script id="_f5_script" src="_/js/reloader.js"></script>\n</body>'
+
+    def should_return_304(self):
+        return False
+
+    @classmethod
+    def is_html_path(cls, path):
+        _, ext = os.path.splitext(path)
+        if ext.lower() in ['.html', '.htm', '.shtml']:
+            return True
+        return False
+
     @classmethod
     def get_content(cls, abspath, start=None, end=None):
-        html = open(abspath, 'r').read()
-        html = html.replace('</body>', cls.SCRIPT_AND_END_OF_BODY)
-        return html
+        if cls.is_html_path(abspath):
+            html = open(abspath, 'r').read()
+            html = html.replace('</body>', cls.SCRIPT_AND_END_OF_BODY)
+            return html
+        else:
+            return StaticFileHandler.get_content(abspath, start, end)
 
     def get_content_size(self):
-        size = StaticFileHandlerWithoutCache.get_content_size(self)
-        size = size - len('</body>') + len(self.__class__.SCRIPT_AND_END_OF_BODY)
-        return size
+        if self.__class__.is_html_path(self.absolute_path):
+            content = self.__class__.get_content(self.absolute_path)
+            return len(content)
+        else:
+            return StaticFileHandler.get_content_size(self)
 
 
 class ChangeRequestHandler(RequestHandler):
