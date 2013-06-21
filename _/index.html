@@ -13,17 +13,23 @@
 
 <div class="container">
     <div class="row">
-        <div class="span4">
 
+        <div class="span4">
+            <h4>项目列表</h4>
+            <ul id="projects" data-bind="foreach:projects">
+                <li data-bind="css:{selected: $parent.currentProject() == $data}">
+                    <a href="javascript:" data-bind="text:path, click:$parent.selectProject"></a>
+                </li>
+            </ul>
         </div>
-        <div class="span6">
+        <div id="right-panel" class="span8">
             <form data-bind="submit: onSubmit">
                 <fieldset>
-                    <legend>正在关注的目录</legend>
+                    <legend>添加关注的目录</legend>
                     <label>目录路径</label>
-                    <input type="text" placeholder="Type something…" class="input-xxlarge"
-                            data-bind="value:path"><br>
-                    <button type="submit" class="btn">Submit</button>
+                    <input id="new-path-input" type="text" placeholder="Type something…"
+                           class="input-xxlarge"><br>
+                    <button type="submit" class="btn">添加</button>
                 </fieldset>
             </form>
         </div>

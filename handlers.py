@@ -120,18 +120,52 @@ class APIRequestHandler(RequestHandler):
         apply(self.__getattribute__(cmd))
 
     def getPath(self):
-        self.return_data({'path': self.application.path})
+        self.return_success({'path': self.application.config.get('path', '')})
 
     def setPath(self):
         path = self.get_argument('path', '')
-        self.application.set_site_path(path)
-        self.return_data({})
+        config = self.application.config
+        if path:
+            if not os.path.exists(path):
+                return self.return_error('PATH_NOT_EXISTS', '目录不存在')
+            config['path'] = path
+            self.application.save_config()
+            self.application.set_site_path(path)
+            return self.return_success()
+        else:
+            return self.return_error('INVALID_PARAMS', '缺少path参数')
 
-    def return_data(self, data):
+    def getPaths(self):
+        self.return_success({'paths': self.application.config.get('paths', [])})
+
+    def addPath(self):
+        path = self.get_argument('path', '')
+        config = self.application.config
+        if path:
+            config.setdefault('paths', [])
+            if path not in config['paths']:
+                config['paths'].append(path)
+                self.application.save_config()
+            return self.getPaths()
+        else:
+            self.return_error('INVALID_PARAMS', '缺少path参数')
+
+    def return_success(self, data=None):
+        if not data:
+            data = {}
         data['status'] = 'ok'
         self.return_JSONP(data)
 
+    def return_error(self, error_name, error_message):
+        data = {
+            'status': 'error',
+            'type': error_name,
+            'message': error_message
+        }
+        self.return_JSONP(data)
+
     def return_JSONP(self, data):
+        self.application.log_request(self)
         callback_name = self.get_argument('callback', 'alert')
         self.write('%s(%s);' % (callback_name, json.dumps(data)))
         self.finish()

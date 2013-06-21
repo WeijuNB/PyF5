@@ -5,6 +5,7 @@ import sys
 import time
 from threading import Thread
 from collections import namedtuple
+import cPickle
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, \
@@ -131,13 +132,20 @@ class F5Server(Application):
 
         Application.__init__(self, handlers, default_host, transforms, wsgi, **settings)
         self.internal_handler_count = len(handlers)
-        self.path = ""
+
+        self.config_path = os.path.join(module_path(), 'config.pickle')
+        self.config = self.load_config()
 
         self.change_request_handlers = set()
         self.observer = ChangesObserver(changes_handler=self.change_happened)
 
+    def load_config(self):
+        return cPickle.load(open(self.config_path)) if os.path.exists(self.config_path) else {}
+
+    def save_config(self):
+        cPickle.dump(self.config, open(self.config_path, 'w+'))
+
     def set_site_path(self, path):
-        self.path = path
         if len(self.handlers) > 1:
             self.handlers.pop(-1)
         self.add_handlers(".*$", [
@@ -162,7 +170,7 @@ if __name__ == "__main__":
         except socket.error:
             continue
     print 'start on port:', port
-    server.set_site_path(path)
+    server.set_site_path('.')
 
     try:
         ioloop.IOLoop.instance().start()
