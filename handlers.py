@@ -23,7 +23,7 @@ class AssetsHandler(StaticFileHandler):
         StaticFileHandler.initialize(self, path, default_filename)
 
     def prepare(self):
-        self.asset_path = self.path_args[0]
+        self.asset_path = self.path_args[0][1:]  # eg: '/js/reloader.js'[1:]
 
     @classmethod
     def get_content(cls, abspath, start=None, end=None):
@@ -48,7 +48,7 @@ class AssetsHandler(StaticFileHandler):
 
 
 class StaticSiteHandler(StaticFileHandler):
-    SCRIPT_AND_END_OF_BODY = '<script id="_f5_script" src="_/js/reloader.js"></script>\n</body>'
+    SCRIPT_AND_END_OF_BODY = '<script id="_f5_script" src="/_/js/reloader.js"></script>\n</body>'
 
     def should_return_304(self):
         return False
@@ -89,13 +89,13 @@ class ChangeRequestHandler(RequestHandler):
         self.timeout = ioloop.IOLoop.instance().add_timeout(deadline, lambda: self.return_changes([]))
 
     @asynchronous
-    def get(self):
+    def get(self, *args, **kwargs):
         pass
 
     def change_happened(self, all_changes):
         changes = []
         for change in all_changes:
-            if change > self.query_time:
+            if change.time > self.query_time:
                 changes.append(change)
         if changes:
             self.return_changes(changes)
@@ -113,16 +113,29 @@ class ChangeRequestHandler(RequestHandler):
         self.application.change_request_handlers.remove(self)
 
 
-if __name__ == '__main__':
-    import base64
-    import cPickle
-    from zfs import ZipFileSystem
-    vfs_dict = ZipFileSystem.make_VFS_dict('assets')
-    raw_data = cPickle.dumps(vfs_dict)
-    wf = open('assets.py', 'w+')
-    wf.write('pickle_base64 = """%s"""' % base64.encodestring(raw_data))
-    wf.close()
+class APIRequestHandler(RequestHandler):
+    @asynchronous
+    def get(self, *args, **kwargs):
+        cmd = self.get_argument('cmd', None)
+        apply(self.__getattribute__(cmd))
 
-    from assets import pickle_base64
-    data = cPickle.loads(base64.decodestring(pickle_base64))
-    print data
+    def getPath(self):
+        self.return_data({'path': self.application.path})
+
+    def setPath(self):
+        path = self.get_argument('path', '')
+        self.application.set_site_path(path)
+        self.return_data({})
+
+    def return_data(self, data):
+        data['status'] = 'ok'
+        self.return_JSONP(data)
+
+    def return_JSONP(self, data):
+        callback_name = self.get_argument('callback', 'alert')
+        self.write('%s(%s);' % (callback_name, json.dumps(data)))
+        self.finish()
+
+
+if __name__ == '__main__':
+    pass

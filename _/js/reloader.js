@@ -151,7 +151,7 @@
 
     var $ = jQuery.noConflict(),
         self = this,
-        apiRoot = getApiRoot(),
+        f5RootUrl = getF5RootUrl(),
         retryCount = 0,
         MAX_RETRY = 3;
 
@@ -164,7 +164,7 @@
         return navigator && navigator.appName && navigator.appName === 'Microsoft Internet Explorer';
     }
 
-    function getApiRoot() {
+    function getF5RootUrl() {
         var scripts = document.getElementsByTagName('script'),
             script, src, authority, i;
         for (i = 0; i < scripts.length; i ++) {
@@ -204,7 +204,6 @@
     function updateStyleSheets(path) {
         var links, href, hasLess = false;
         links = findLINKs(path);
-        trace(links);
         if (links.length == 0) {
             refresh();
         } else {
@@ -257,7 +256,7 @@
 
 
     function queryChanges() {
-        var url = apiRoot + 'changes?callback=_F5.handleChanges';
+        var url = f5RootUrl + 'api/changes?callback=_F5.handleChanges';
         $.getScript(url)
             .fail(function () {
                 if (retryCount >= MAX_RETRY) {

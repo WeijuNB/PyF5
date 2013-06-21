@@ -1,5 +1,6 @@
 #coding:utf-8
 import os
+import socket
 import sys
 import time
 from threading import Thread
@@ -12,12 +13,12 @@ from tornado import ioloop
 from tornado.web import Application, StaticFileHandler
 
 from utils import module_path, get_rel_path, we_are_frozen
-from handlers import ChangeRequestHandler, AssetsHandler, StaticSiteHandler
+from handlers import ChangeRequestHandler, AssetsHandler, StaticSiteHandler, APIRequestHandler
 
 debug = True
 if debug and not we_are_frozen():
     # 开发模式下面AssetsHandler就直接从开发目录下面读取assets
-    AssetsHandler = StaticFileHandler
+    AssetsHandler = StaticSiteHandler
 
 
 Change = namedtuple('Change', 'time, path, type')
@@ -31,17 +32,15 @@ class ChangesObserver(FileSystemEventHandler):
         self.path = None
         self.changes_handler = changes_handler
         self.changes_timer = None
-
-    def start_observe(self, path):
-        self.path = path
-        self.observer.schedule(self, self.path, recursive=True)
         self.observer.start()
+
+    def observe(self, path):
+        self.path = path
+        self.observer.unschedule_all()
+        self.observer.schedule(self, self.path, recursive=True)
 
     def add_black_list(self, path_name_list):
         self.black_list = path_name_list
-
-    def stop(self):
-        self.observer.stop()
 
     def get_changes_since(self, ts):
         ret = []
@@ -62,8 +61,10 @@ class ChangesObserver(FileSystemEventHandler):
             self.add_pure_change(Change(now, rel_dest_path, EVENT_TYPE_CREATED))
         else:
             self.add_pure_change(Change(time.time(), rel_src_path, event.event_type))
-
-        ioloop.IOLoop.instance().add_callback(self.refresh_change_timer)
+        try:
+            ioloop.IOLoop.instance().add_callback(self.refresh_change_timer)
+        except RuntimeError:
+            print 'ioloop.add_callback failed'
 
     def refresh_change_timer(self):
         loop = ioloop.IOLoop.instance()
@@ -119,8 +120,9 @@ class F5Server(Application):
     def __init__(self, handlers=None, default_host="", transforms=None, wsgi=False, **settings):
         if not handlers:
             handlers = [
-                (r"/_/changes", ChangeRequestHandler),
-                (r"/_/(.*)", AssetsHandler, {"path": os.path.join(module_path(), 'assets')}),
+                (r"/_/api/changes", ChangeRequestHandler),
+                (r"/_/api/?(.*)", APIRequestHandler),
+                (r"/_/?(.*)", AssetsHandler, {"path": os.path.join(module_path(), '_')}),
             ]
         if not settings:
             settings = {'debug': debug}
@@ -128,26 +130,40 @@ class F5Server(Application):
             default_host = '.*$'
 
         Application.__init__(self, handlers, default_host, transforms, wsgi, **settings)
+        self.internal_handler_count = len(handlers)
+        self.path = ""
+
         self.change_request_handlers = set()
+        self.observer = ChangesObserver(changes_handler=self.change_happened)
 
     def set_site_path(self, path):
+        self.path = path
+        if len(self.handlers) > 1:
+            self.handlers.pop(-1)
         self.add_handlers(".*$", [
             (r"/(.*)", StaticSiteHandler, {"path": path})
         ])
         handle = self.handlers.pop(0)
-        self.handlers.append(handle)
-        self.observer = ChangesObserver(self.change_happened)
-        self.observer.start_observe(path)
+        self.handlers.insert(self.internal_handler_count, handle)
+        self.observer.observe(path)
 
     def change_happened(self):
         for handler in list(self.change_request_handlers):
             handler.change_happened(self.observer.changes)
 
 if __name__ == "__main__":
-    path = 'D:/PROJECTS/Working/markman/src/web'
+    path = module_path()
     server = F5Server()
-    server.listen(80)
+    port = 0
+    for port in range(80, 90):
+        try:
+            server.listen(port)
+            break
+        except socket.error:
+            continue
+    print 'start on port:', port
     server.set_site_path(path)
+
     try:
         ioloop.IOLoop.instance().start()
     except KeyboardInterrupt:

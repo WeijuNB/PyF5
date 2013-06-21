@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <link href="/_/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/_/css/bootstrap-responsive.min.css" rel="stylesheet">
+    <link href="/_/css/index.less" type="text/css" rel="stylesheet/less">
+    <script src="/_/js/libs/less.js"></script>
+    <script src="/_/js/libs/jquery-1.8.2.min.js"></script>
+    <script src="/_/js/libs/knockout-2.2.1.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <div class="row">
+        <div class="span4">
+
+        </div>
+        <div class="span6">
+            <form data-bind="submit: onSubmit">
+                <fieldset>
+                    <legend>正在关注的目录</legend>
+                    <label>目录路径</label>
+                    <input type="text" placeholder="Type something…" class="input-xxlarge"
+                            data-bind="value:path"><br>
+                    <button type="submit" class="btn">Submit</button>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script src="/_/js/index.js"></script>
+</body>
+</html>
