@@ -3,13 +3,12 @@ import base64
 import os
 import json
 import time
-import cPickle
 from StringIO import StringIO
 
 from tornado.web import StaticFileHandler, RequestHandler, asynchronous, HTTPError
 from tornado import ioloop
 
-from utils import app_path, get_rel_path, we_are_frozen
+from utils import get_rel_path
 from zfs import ZipFileSystem
 from assets import assets_zip64
 
@@ -104,7 +103,7 @@ class ChangeRequestHandler(RequestHandler):
         ret = {
             'status': 'ok',
             'changes': [change._asdict() for change in changes],
-        }
+            }
         ret = '%s(%s);' % (self.callback, json.dumps(ret))
         print ret
         self.write(ret)
@@ -113,9 +112,3 @@ class ChangeRequestHandler(RequestHandler):
         self.application.change_request_handlers.remove(self)
 
 
-
-
-
-
-if __name__ == '__main__':
-    pass

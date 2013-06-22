@@ -28,10 +28,11 @@ function queryAPI(cmd, params, callback, error_callback) {
 }
 
 
-function ProjectModel(path) {
+function ProjectModel(path, isCurrent) {
     var self = this;
 
     self.path = ko.observable(path);
+    self.isCurrent = ko.observable(isCurrent);
 }
 
 function FileModel(data) {
@@ -45,7 +46,16 @@ function ProjectsViewModel() {
     var self = this;
 
     self.projects = ko.observableArray([]);
-    self.currentProject = ko.observable(null);
+    self.currentProject = ko.computed(function() {
+        var _currentProject = null;
+        $(self.projects()).each(function(i, project) {
+            if (project.isCurrent()) {
+                _currentProject = project;
+                return false;
+            }
+        });
+        return _currentProject;
+    });
 
     self.folderSegments = ko.observableArray([]);
     self.files = ko.observableArray([]);
@@ -85,7 +95,7 @@ function ProjectsViewModel() {
     };
 
     self.queryFileList = function(path) {
-        queryAPI('listDir', {path:path}, function(data) {
+        queryAPI('os.listDir', {path:path}, function(data) {
             self.files.removeAll();
             $(data['list']).each(function(i, obj) {
                 self.files.push(new FileModel(obj));
@@ -95,8 +105,11 @@ function ProjectsViewModel() {
 
     self.selectProject = function(project) {
         if (project != self.currentProject()) {
-//            queryAPI('setPath', {path:project.path()}, function(data) {
-                self.currentProject(project);
+//            queryAPI('project.setCurrent', {path:project.path()}, function(data) {
+                $(self.projects()).each(function(i, project) {
+                    project.isCurrent(false);
+                });
+                project.isCurrent(true);
                 self.queryFileList(project.path());
 //            })
         }
@@ -111,18 +124,18 @@ function ProjectsViewModel() {
         });
     };
 
-    self.updateProjectsWithPaths = function(paths) {
+    self.updateProjects = function(project_objects) {
         self.projects.removeAll();
-        $(paths).each(function(i, path) {
-            self.projects.push(new ProjectModel(path));
+        $(project_objects).each(function(i, obj) {
+            self.projects.push(new ProjectModel(obj.path, obj.isCurrent));
         });
     };
 
     self.onSubmit = function(formElement) {
         var new_path = $("#new-path-input").val();
         if (new_path) {
-            queryAPI('addPath', {path:new_path}, function(data) {
-                self.updateProjectsWithPaths(data['paths']);
+            queryAPI('project.add', {path:new_path}, function(data) {
+                self.updateProjects(data['objects']);
             });
         }
         return false;
@@ -134,10 +147,10 @@ var vm = new ProjectsViewModel();
 ko.applyBindings(vm);
 
 $(function(){
-    queryAPI('getPaths', {}, function(data) {
-        vm.updateProjectsWithPaths(data['paths']);
-        queryAPI('getPath', {}, function(data) {
-            vm.selectProjectWithPath(data.path);
+    queryAPI('project.all', {}, function(data) {
+        vm.updateProjects(data['projects']);
+        queryAPI('project.getCurrent', {}, function(data) {
+            vm.selectProjectWithPath(data.project.path);
         });
     });
 });
