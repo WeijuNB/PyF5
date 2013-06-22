@@ -138,6 +138,7 @@ class F5Server(Application):
 
         self.change_request_handlers = set()
         self.observer = ChangesObserver(changes_handler=self.change_happened)
+        self.project = None
 
     def load_config(self):
         return cPickle.load(open(self.config_path)) if os.path.exists(self.config_path) else {}
@@ -146,9 +147,9 @@ class F5Server(Application):
         cPickle.dump(self.config, open(self.config_path, 'w+'))
 
     def set_project(self, project):
+        self.project = project
         path = project['path']
         black_list = project.get('blockPaths', [])
-        print 'set_project', path, black_list
 
         if len(self.handlers) > 1:
             self.handlers.pop(-1)
@@ -174,7 +175,7 @@ if __name__ == "__main__":
             break
         except socket.error:
             continue
-    print 'F5 server is started, please visit:', '127.0.0.1' if port == 80 else '127.0.0.1:%s' % port
+    print 'F5 server started, please visit:', '127.0.0.1' if port == 80 else '127.0.0.1:%s' % port
 
     try:
         ioloop.IOLoop.instance().start()

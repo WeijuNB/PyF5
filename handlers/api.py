@@ -98,7 +98,7 @@ class ProjectAPI(APIRequestHandler):
 
     def getCurrent(self):
         for project in self.projects:
-            if project.get('isCurrent'):
+            if project == self.application.project:
                 return self.respond_success({'project': project})
         return self.respond_success({'project': None})
 
@@ -111,14 +111,13 @@ class ProjectAPI(APIRequestHandler):
 
         for project in self.projects:
             if project.get('path') == path:
-                project['isCurrent'] = True
                 self.application.set_project(project)
-            else:
-                project['isCurrent'] = False
         self.save_config()
         return self.respond_success()
 
     def all(self):
+        for project in self.projects:
+            project['isCurrent'] = project == self.application.project
         self.respond_success({'projects': self.projects})
 
     def add(self):
