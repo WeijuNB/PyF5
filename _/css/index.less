@@ -1,3 +1,21 @@
+body{
+  overflow-y:scroll;
+}
+
+h3 {
+  font-family: "microsoft yahei";
+  color:  #444;
+  border-bottom: 1px solid #ccc;
+  line-height: 40px;
+  padding-left: 20px;
+}
+
+#project-add-form{
+  margin-bottom: 5px;
+  padding-top: 5px;
+  padding-left: 20px;
+}
+
 ul#projects{
   list-style: none;
   padding: 0px;
@@ -23,6 +41,77 @@ ul#projects{
     }
     &.selected a{
       color: white;
+    }
+  }
+}
+
+.icon{
+  display: inline-block;
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-image: url("/_/img/file-icons/unknown.png");
+
+  &.DIR{
+    background-image: url("/_/img/file-icons/DIR.png");
+  }
+  &.html, &.htm {
+    background-image: url("/_/img/file-icons/html.png");
+  }
+  &.js, &.vbs {
+    background-image: url("/_/img/file-icons/js.png");
+  }
+  &.css, &.less {
+    background-image: url("/_/img/file-icons/css.png");
+  }
+  &.php {
+    background-image: url("/_/img/file-icons/php.png");
+  }
+  &.as3, *.fla, *.swf {
+    background-image: url("/_/img/file-icons/flash.png");
+  }
+}
+
+ul#folder-segments {
+  list-style: none;
+  margin-left: 0px;
+  padding-left: 0px;
+
+  li {
+    display: inline-block;
+    padding-right:5px;
+    a {
+      display: inline-block;
+      background-color: #f5f5f5;
+      padding: 0 10px;
+      line-height: 20px;
+    }
+  }
+}
+
+#file-list {
+  tbody{
+    td.op{
+      text-align: right;
+      a.block {
+        display: none;
+        width: 16px;
+        height: 16px;
+        background-image: url("/_/img/delete.png");
+        background-repeat: no-repeat;
+        background-position: center;
+        text-decoration:none;
+      }
+    }
+    tr:hover{
+      a.block {
+        display: inline-block;
+      }
+    }
+    td.file {
+      a {
+        display: block;
+        padding-left: 20px;
+      }
     }
   }
 }

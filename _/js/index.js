@@ -1,5 +1,5 @@
 
-function queryAPI(cmd, params, callback) {
+function queryAPI(cmd, params, callback, error_callback) {
     var url = '/_/api?';
     var callback_name = '_jsonp_callback_' + parseInt(Math.random() * 100000000000);
     var param_pairs = ['cmd=' + cmd, 'callback=' + callback_name];
@@ -11,7 +11,13 @@ function queryAPI(cmd, params, callback) {
 
     window[callback_name] = function(data) {
         delete window[callback_name];
-        callback(data);
+        if (data.status == 'ok') {
+            callback(data);
+        } else if (error_callback) {
+            error_callback(data);
+        } else {
+            alert(data['message']);
+        }
     };
     $.getScript(url)
         .fail(function(){
@@ -22,10 +28,17 @@ function queryAPI(cmd, params, callback) {
 }
 
 
-function ProjectViewModel(path) {
+function ProjectModel(path) {
     var self = this;
 
     self.path = ko.observable(path);
+}
+
+function FileModel(data) {
+    var self = this;
+
+    self.name = ko.observable(data['name']);
+    self.type = ko.observable(data['type']);
 }
 
 function ProjectsViewModel() {
@@ -34,31 +47,74 @@ function ProjectsViewModel() {
     self.projects = ko.observableArray([]);
     self.currentProject = ko.observable(null);
 
-    self.selectProject = function(project) {
-        queryAPI('setPath', {path:project.path()}, function(data) {
-            if (data.status == 'ok'){
-                self.currentProject(project);
-            } else {
-                alert(data.message);
+    self.folderSegments = ko.observableArray([]);
+    self.files = ko.observableArray([]);
+
+    self.clickFile = function(data, event) {
+        if (data.type() == 'DIR') {
+            self.folderSegments.push(data.name());
+            self.enterFolderSegment(data.name());
+        }
+    };
+
+    self.clickBreadCrumb = function(data, event) {
+        console.log('clickBreakCrumb', data, typeof data);
+        if (typeof data == 'object') {
+            self.enterFolderSegment('');
+        } else {
+            self.enterFolderSegment(data);
+        }
+    };
+
+    self.enterFolderSegment = function (name) {
+        var path = self.currentProject().path();
+        var matched_index = -1;
+        $(self.folderSegments()).each(function(i, segment) {
+            path += ('/' + segment);
+            if (name == segment) {
+                matched_index = i;
+                return false;
             }
-        })
+        });
+        if (matched_index > -1) {
+            self.queryFileList(path);
+        } else {
+            self.queryFileList(self.currentProject().path());
+        }
+        self.folderSegments.splice(matched_index+1);
+    };
+
+    self.queryFileList = function(path) {
+        queryAPI('listDir', {path:path}, function(data) {
+            self.files.removeAll();
+            $(data['list']).each(function(i, obj) {
+                self.files.push(new FileModel(obj));
+            });
+        });
+    };
+
+    self.selectProject = function(project) {
+        if (project != self.currentProject()) {
+//            queryAPI('setPath', {path:project.path()}, function(data) {
+                self.currentProject(project);
+                self.queryFileList(project.path());
+//            })
+        }
     };
 
     self.selectProjectWithPath = function(path) {
-        var project;
-        for (var i in self.projects()) {
-            project = self.projects[i]
+        $(self.projects()).each(function(i, project) {
             if (project.path() == path) {
-                self.selectProject(project)
-                break;
+                self.selectProject(project);
+                return false;
             }
-        }
+        });
     };
 
     self.updateProjectsWithPaths = function(paths) {
         self.projects.removeAll();
         $(paths).each(function(i, path) {
-            self.projects.push(new ProjectViewModel(path));
+            self.projects.push(new ProjectModel(path));
         });
     };
 
@@ -66,30 +122,22 @@ function ProjectsViewModel() {
         var new_path = $("#new-path-input").val();
         if (new_path) {
             queryAPI('addPath', {path:new_path}, function(data) {
-                if (data.status == 'ok') {
-                    self.updateProjectsWithPaths(data['paths']);
-                } else {
-                    alert(data.message);
-                }
+                self.updateProjectsWithPaths(data['paths']);
             });
         }
         return false;
     };
 }
 
-var projectsViewModel = new ProjectsViewModel();
+var vm = new ProjectsViewModel();
 
-ko.applyBindings(projectsViewModel);
+ko.applyBindings(vm);
 
 $(function(){
     queryAPI('getPaths', {}, function(data) {
-        if (data.status == 'ok') {
-            projectsViewModel.updateProjectsWithPaths(data['paths'])
-        }
+        vm.updateProjectsWithPaths(data['paths']);
         queryAPI('getPath', {}, function(data) {
-            if (data.status == 'ok') {
-                projectsViewModel.selectProjectWithPath(data.path);
-            }
+            vm.selectProjectWithPath(data.path);
         });
     });
 });

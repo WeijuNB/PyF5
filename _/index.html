@@ -15,7 +15,14 @@
     <div class="row">
 
         <div class="span4">
-            <h4>项目列表</h4>
+            <h3>项目列表</h3>
+            <form id="project-add-form" data-bind="submit: onSubmit">
+                <div class="input-append">
+                    <input class="span3" id="new-path-input"
+                           type="text" placeholder="请输入目录...">
+                    <button class="btn btn-success" type="submit">添加</button>
+                </div>
+            </form>
             <ul id="projects" data-bind="foreach:projects">
                 <li data-bind="css:{selected: $parent.currentProject() == $data}">
                     <a href="javascript:" data-bind="text:path, click:$parent.selectProject"></a>
@@ -23,15 +30,36 @@
             </ul>
         </div>
         <div id="right-panel" class="span8">
-            <form data-bind="submit: onSubmit">
-                <fieldset>
-                    <legend>添加关注的目录</legend>
-                    <label>目录路径</label>
-                    <input id="new-path-input" type="text" placeholder="Type something…"
-                           class="input-xxlarge"><br>
-                    <button type="submit" class="btn">添加</button>
-                </fieldset>
-            </form>
+            <h3>文件列表</h3>
+            <!-- ko with: currentProject -->
+            <table id="file-list" class="table table-hover">
+                <thead>
+                    <tr>
+                        <td colspan="2">
+                            <ul id="folder-segments">
+                                <li><a href="javascript:"
+                                       data-bind="text:path, click:$root.clickBreadCrumb"></a></li>
+                                <!-- ko foreach: $root.folderSegments -->
+                                <li><a href="javascript:"
+                                       data-bind="text: '/' + $data, click:$root.clickBreadCrumb"></a></li>
+                                <!-- /ko -->
+                            </ul>
+                        </td>
+                    </tr>
+                </thead>
+                <tbody data-bind="foreach:$root.files">
+                    <tr>
+                        <td class="file">
+                            <a href="javascript:" class="icon"
+                               data-bind="text:name, css:type, click:$root.clickFile"></a>
+                        </td>
+                        <!--<td class="span1 op">-->
+                            <!--<a href="javascript:" class="block" title="不检测更新">&nbsp;</a>-->
+                        <!--</td>-->
+                    </tr>
+                </tbody>
+            </table>
+            <!-- /ko -->
         </div>
     </div>
 

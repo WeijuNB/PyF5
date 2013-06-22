@@ -124,31 +124,59 @@ class APIRequestHandler(RequestHandler):
 
     def setPath(self):
         path = self.get_argument('path', '')
+        if not path:
+            return self.return_error('INVALID_PARAMS', u'缺少path参数')
         config = self.application.config
-        if path:
-            if not os.path.exists(path):
-                return self.return_error('PATH_NOT_EXISTS', '目录不存在')
-            config['path'] = path
-            self.application.save_config()
-            self.application.set_site_path(path)
-            return self.return_success()
-        else:
-            return self.return_error('INVALID_PARAMS', '缺少path参数')
+        if not os.path.exists(path):
+            return self.return_error('PATH_NOT_EXISTS', u'目录不存在:' + path)
+        config['path'] = path.replace('\\', '/')
+        self.application.save_config()
+        self.application.set_site_path(path)
+        return self.return_success()
 
     def getPaths(self):
         self.return_success({'paths': self.application.config.get('paths', [])})
 
     def addPath(self):
         path = self.get_argument('path', '')
+        if not path:
+            self.return_error('INVALID_PARAMS', u'缺少path参数')
         config = self.application.config
-        if path:
-            config.setdefault('paths', [])
-            if path not in config['paths']:
-                config['paths'].append(path)
-                self.application.save_config()
-            return self.getPaths()
-        else:
-            self.return_error('INVALID_PARAMS', '缺少path参数')
+        config.setdefault('paths', [])
+        if path not in config['paths']:
+            config['paths'].append(path)
+            self.application.save_config()
+        return self.getPaths()
+
+    def delPath(self):
+        path = self.get_argument('path', '')
+        if not path:
+            self.return_error('INVALID_PARAMS', u'缺少path参数')
+        config = self.application.config
+        config.setdefault('paths', [])
+        if path in config['paths']:
+            config['paths'].remove(path)
+        return self.getPaths()
+
+    def listDir(self):
+        path = self.get_argument('path', '')
+        if not path:
+            self.return_error('INVALID_PARAMS', u'缺少path参数')
+        if not os.path.exists(path):
+            self.return_error('PATH_NOT_EXISTS', u'目录不存在:' + path)
+        if not os.path.isdir(path):
+            self.return_error('PATH_IS_NOT_DIR', u'路径不是目录')
+        ret = []
+        for name in os.listdir(path):
+            abs_path = os.path.join(path, name)
+            _, ext = os.path.splitext(name)
+            is_dir = os.path.isdir(abs_path)
+            ret.append(dict(
+                name=name,
+                type='DIR' if is_dir else ext.replace('.', '').lower(),
+            ))
+        ret.sort(key=lambda item: (item['type'] != 'DIR', name))
+        return self.return_success({'list': ret})
 
     def return_success(self, data=None):
         if not data:
