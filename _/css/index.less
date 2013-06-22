@@ -102,8 +102,23 @@ ul#folder-segments {
       }
     }
     tr:hover{
-      a.block {
-        display: inline-block;
+      td.op{
+        a.block {
+          display: inline-block;
+        }
+      }
+    }
+    tr.blocked{
+      td.file {
+        a{
+          color: #444;
+          opacity: 0.3;
+        }
+      }
+      td.op{
+        a.block{
+          background-image: url("/_/img/add.png");
+        }
       }
     }
     td.file {

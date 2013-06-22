@@ -113,9 +113,5 @@ class ChangeRequestHandler(RequestHandler):
         self.application.change_request_handlers.remove(self)
 
 
-
-
-
-
 if __name__ == '__main__':
     pass

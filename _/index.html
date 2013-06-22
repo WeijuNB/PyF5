@@ -48,13 +48,14 @@
                     </tr>
                 </thead>
                 <tbody data-bind="foreach:$root.files">
-                    <tr>
+                    <tr data-bind="css:{blocked:isBlocked}">
                         <td class="file">
-                            <a href="javascript:" class="icon"
-                               data-bind="text:name, css:type, click:$root.clickFile"></a>
+                            <a href="javascript:" class="icon" target="_blank"
+                               data-bind="text:name, css:type, click:$root.clickFile, attr:{href:url}"></a>
                         </td>
                         <td class="span1 op">
-                            <a href="javascript:" class="block" title="不监听更新">&nbsp;</a>
+                            <a href="javascript:" class="block" title="不监听更新"
+                                    data-bind="click:$root.toggleBlock">&nbsp;</a>
                         </td>
                     </tr>
                 </tbody>

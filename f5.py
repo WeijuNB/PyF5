@@ -11,7 +11,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, \
     EVENT_TYPE_CREATED, EVENT_TYPE_DELETED, EVENT_TYPE_MOVED
 from tornado import ioloop
-from tornado.web import Application, StaticFileHandler
+from tornado.web import Application, StaticFileHandler, RedirectHandler
 
 from utils import module_path, get_rel_path, we_are_frozen
 from handlers import ChangeRequestHandler, AssetsHandler, StaticSiteHandler, APIRequestHandler
@@ -35,13 +35,11 @@ class ChangesObserver(FileSystemEventHandler):
         self.changes_timer = None
         self.observer.start()
 
-    def observe(self, path):
+    def observe(self, path, black_list=None):
         self.path = path
+        self.black_list = black_list or []
         self.observer.unschedule_all()
         self.observer.schedule(self, self.path, recursive=True)
-
-    def add_black_list(self, path_name_list):
-        self.black_list = path_name_list
 
     def get_changes_since(self, ts):
         ret = []
@@ -95,17 +93,18 @@ class ChangesObserver(FileSystemEventHandler):
 
     def add_pure_change(self, change):
         for path_name in self.black_list:
-            if path_name in change.path:
+            if '..' not in os.path.relpath(change.path, path_name):
+                print '...', change
                 return
 
         trash_changes = self.find_related_trash_changes(change)
         if trash_changes:
             for change in trash_changes:
                 self.changes.remove(change)
-                print '-', change
+                print '-  ', change
         else:
             self.changes.append(change)
-            print '+', change
+            print '+  ', change
         self.remove_outdated_changes(30)
 
     def remove_outdated_changes(self, seconds):
@@ -124,6 +123,7 @@ class F5Server(Application):
                 (r"/_/api/changes", ChangeRequestHandler),
                 (r"/_/api/?(.*)", APIRequestHandler),
                 (r"/_/?(.*)", AssetsHandler, {"path": os.path.join(module_path(), '_')}),
+                (r"/", RedirectHandler, {'url': '/_/index.html'}),
             ]
         if not settings:
             settings = {'debug': debug}
@@ -145,15 +145,20 @@ class F5Server(Application):
     def save_config(self):
         cPickle.dump(self.config, open(self.config_path, 'w+'))
 
-    def set_site_path(self, path):
+    def set_project(self, project):
+        path = project['path']
+        black_list = project['blockPaths']
+        print 'set_project', path, black_list
+
         if len(self.handlers) > 1:
             self.handlers.pop(-1)
+
         self.add_handlers(".*$", [
             (r"/(.*)", StaticSiteHandler, {"path": path})
         ])
         handle = self.handlers.pop(0)
         self.handlers.insert(self.internal_handler_count, handle)
-        self.observer.observe(path)
+        self.observer.observe(path, black_list)
 
     def change_happened(self):
         for handler in list(self.change_request_handlers):
@@ -169,8 +174,7 @@ if __name__ == "__main__":
             break
         except socket.error:
             continue
-    print 'start on port:', port
-    server.set_site_path('.')
+    print 'F5 server is started, please visit:', '127.0.0.1' if port == 80 else '127.0.0.1:%s' + port
 
     try:
         ioloop.IOLoop.instance().start()

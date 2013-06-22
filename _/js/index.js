@@ -1,5 +1,5 @@
 
-function queryAPI(cmd, params, callback, error_callback) {
+function queryAPI(cmd, params, success_handler, error_handler) {
     var url = '/_/api?';
     var callback_name = '_jsonp_callback_' + parseInt(Math.random() * 100000000000);
     var param_pairs = ['cmd=' + cmd, 'callback=' + callback_name];
@@ -12,9 +12,9 @@ function queryAPI(cmd, params, callback, error_callback) {
     window[callback_name] = function(data) {
         delete window[callback_name];
         if (data.status == 'ok') {
-            callback(data);
-        } else if (error_callback) {
-            error_callback(data);
+            success_handler(data);
+        } else if (error_handler) {
+            error_handler(data);
         } else {
             alert(data['message']);
         }
@@ -40,12 +40,17 @@ function FileModel(data) {
 
     self.name = ko.observable(data['name']);
     self.type = ko.observable(data['type']);
+    self.absolutePath = ko.observable(data['absolutePath']);
+
+    self.isBlocked = ko.observable(false);
+    self.url = ko.observable('');
 }
 
 function ProjectsViewModel() {
     var self = this;
 
     self.projects = ko.observableArray([]);
+
     self.currentProject = ko.computed(function() {
         var _currentProject = null;
         $(self.projects()).each(function(i, project) {
@@ -56,15 +61,52 @@ function ProjectsViewModel() {
         });
         return _currentProject;
     });
-
+    self.blockPaths = ko.observableArray([]);
     self.folderSegments = ko.observableArray([]);
     self.files = ko.observableArray([]);
 
-    self.clickFile = function(data, event) {
-        if (data.type() == 'DIR') {
-            self.folderSegments.push(data.name());
-            self.enterFolderSegment(data.name());
+    self.updateFilesBlockStatus = function() {
+        console.log('update');
+        $(self.files()).each(function(i, file) {
+            if (self.blockPaths().indexOf(file.absolutePath()) > -1) {
+                file.isBlocked(true);
+            } else {
+                file.isBlocked(false);
+            }
+        })
+    };
+
+    self.init = function() {
+        queryAPI('project.all', {}, function(data) {
+            self.updateProjects(data['projects']);
+            queryAPI('project.getCurrent', {}, function(data) {
+                if (data.project) {
+                    self.selectProjectWithPath(data.project.path);
+                }
+            });
+        });
+    };
+
+    self.clickFile = function(file, event) {
+        console.log(ko.toJS(file));
+        if (file.type() == 'DIR') {
+            self.folderSegments.push(file.name());
+            self.enterFolderSegment(file.name());
+            return false;
         }
+        return true;
+    };
+
+    self.toggleBlock = function(data, event) {
+        var blocked = self.blockPaths().indexOf(data.absolutePath()) > -1;
+        var params = {
+            projectPath: self.currentProject().path(),
+            blockPath: data.absolutePath(),
+            action: blocked ? 'off' : 'on'
+        };
+        queryAPI('project.toggleBlockPath', params, function(data) {
+            self.queryBlockPaths(self.currentProject().path());
+        });
     };
 
     self.clickBreadCrumb = function(data, event) {
@@ -98,21 +140,26 @@ function ProjectsViewModel() {
         queryAPI('os.listDir', {path:path}, function(data) {
             self.files.removeAll();
             $(data['list']).each(function(i, obj) {
-                self.files.push(new FileModel(obj));
+                console.log('add file', obj);
+                var file = new FileModel(obj);
+                self.files.push(file);
+                file.url(/.*?:\/\/.*?\//.exec(location.href)[0] + self.folderSegments().join('/') + file.name());
             });
+            self.updateFilesBlockStatus();
+        });
+    };
+    self.queryBlockPaths = function(projectPath) {
+        queryAPI('project.blockPaths', {'projectPath': self.currentProject().path()}, function(data) {
+            self.blockPaths(data['blockPaths']);
+            self.updateFilesBlockStatus();
         });
     };
 
     self.selectProject = function(project) {
-        if (project != self.currentProject()) {
-//            queryAPI('project.setCurrent', {path:project.path()}, function(data) {
-                $(self.projects()).each(function(i, project) {
-                    project.isCurrent(false);
-                });
-                project.isCurrent(true);
-                self.queryFileList(project.path());
-//            })
-        }
+        queryAPI('project.setCurrent', {path:project.path()}, function(data) {
+            self.queryFileList(project.path());
+            self.queryBlockPaths(project.path());
+        })
     };
 
     self.selectProjectWithPath = function(path) {
@@ -147,10 +194,5 @@ var vm = new ProjectsViewModel();
 ko.applyBindings(vm);
 
 $(function(){
-    queryAPI('project.all', {}, function(data) {
-        vm.updateProjects(data['projects']);
-        queryAPI('project.getCurrent', {}, function(data) {
-            vm.selectProjectWithPath(data.project.path);
-        });
-    });
+    vm.init();
 });
