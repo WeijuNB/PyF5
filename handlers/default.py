@@ -22,7 +22,10 @@ class AssetsHandler(StaticFileHandler):
         StaticFileHandler.initialize(self, path, default_filename)
 
     def prepare(self):
-        self.asset_path = self.path_args[0][1:]  # eg: '/js/reloader.js'[1:]
+        self.asset_path = self.path_args[0]  # eg: '/js/reloader.js'[1:]
+
+    def should_return_304(self):
+        return False
 
     @classmethod
     def get_content(cls, abspath, start=None, end=None):

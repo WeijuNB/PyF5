@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
     <title></title>
     <link href="/_/css/bootstrap.min.css" rel="stylesheet">
     <link href="/_/css/bootstrap-responsive.min.css" rel="stylesheet">
@@ -20,7 +21,7 @@
                 <div class="input-append">
                     <input class="span3" id="new-path-input"
                            type="text" placeholder="请输入目录...">
-                    <button class="btn btn-success" type="submit">添加</button>
+                    <button id="project-add-btn" class="btn btn-success" type="submit">添加</button>
                 </div>
             </form>
             <ul id="projects" data-bind="foreach:projects">

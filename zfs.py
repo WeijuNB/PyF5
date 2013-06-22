@@ -50,7 +50,7 @@ class ZipFileSystem(object):
 if __name__ == '__main__':
     import base64
     zip_file_name = 'assets.zip'
-    ZipFileSystem.make_zip_file_with_folder('assets', zip_file_name)
+    ZipFileSystem.make_zip_file_with_folder('_', zip_file_name)
 
     assets_zip64 = base64.encodestring(open(zip_file_name, 'rb').read())
     wf = open('assets.py', 'w+')

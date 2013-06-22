@@ -66,7 +66,6 @@ function ProjectsViewModel() {
     self.files = ko.observableArray([]);
 
     self.updateFilesBlockStatus = function() {
-        console.log('update');
         $(self.files()).each(function(i, file) {
             if (self.blockPaths().indexOf(file.absolutePath()) > -1) {
                 file.isBlocked(true);
@@ -76,19 +75,28 @@ function ProjectsViewModel() {
         })
     };
 
-    self.init = function() {
+
+    self.queryProjects = function() {
         queryAPI('project.all', {}, function(data) {
-            self.updateProjects(data['projects']);
-            queryAPI('project.getCurrent', {}, function(data) {
-                if (data.project) {
-                    self.selectProjectWithPath(data.project.path);
+            self.loadProjects(data['projects']);
+            $(self.projects()).each(function(i, project) {
+                if (project.isCurrent()) {
+                    self.queryFileList(project.path());
+                    self.queryBlockPaths(project.path());
+                    return false;
                 }
-            });
+            })
+        });
+    };
+
+    self.loadProjects = function(project_objects) {
+        self.projects.removeAll();
+        $(project_objects).each(function(i, obj) {
+            self.projects.push(new ProjectModel(obj.path, obj.isCurrent));
         });
     };
 
     self.clickFile = function(file, event) {
-        console.log(ko.toJS(file));
         if (file.type() == 'DIR') {
             self.folderSegments.push(file.name());
             self.enterFolderSegment(file.name());
@@ -110,7 +118,7 @@ function ProjectsViewModel() {
     };
 
     self.clickBreadCrumb = function(data, event) {
-        console.log('clickBreakCrumb', data, typeof data);
+        ('clickBreakCrumb', data, typeof data);
         if (typeof data == 'object') {
             self.enterFolderSegment('');
         } else {
@@ -133,14 +141,14 @@ function ProjectsViewModel() {
         } else {
             self.queryFileList(self.currentProject().path());
         }
-        self.folderSegments.splice(matched_index+1);
+        self.folderSegments.splice(matched_index + 1);
     };
 
     self.queryFileList = function(path) {
         queryAPI('os.listDir', {path:path}, function(data) {
             self.files.removeAll();
             $(data['list']).each(function(i, obj) {
-                console.log('add file', obj);
+                ('add file', obj);
                 var file = new FileModel(obj);
                 self.files.push(file);
                 file.url(/.*?:\/\/.*?\//.exec(location.href)[0] + self.folderSegments().join('/') + file.name());
@@ -157,8 +165,7 @@ function ProjectsViewModel() {
 
     self.selectProject = function(project) {
         queryAPI('project.setCurrent', {path:project.path()}, function(data) {
-            self.queryFileList(project.path());
-            self.queryBlockPaths(project.path());
+            self.queryProjects();
         })
     };
 
@@ -171,18 +178,21 @@ function ProjectsViewModel() {
         });
     };
 
-    self.updateProjects = function(project_objects) {
-        self.projects.removeAll();
-        $(project_objects).each(function(i, obj) {
-            self.projects.push(new ProjectModel(obj.path, obj.isCurrent));
-        });
-    };
-
     self.onSubmit = function(formElement) {
-        var new_path = $("#new-path-input").val();
+        var $input = $("#new-path-input");
+        var $btn = $('#project-add-btn');
+        var new_path = $input.val();
         if (new_path) {
+            $input.attr('disabled', true);
+            $btn.attr('disabled', true);
             queryAPI('project.add', {path:new_path}, function(data) {
-                self.updateProjects(data['objects']);
+                self.loadProjects(data['projects']);
+                $input.attr('disabled', false).val('');
+                $btn.attr('disabled', false);
+            }, function(data) {
+                alert(data['message']);
+                $input.attr('disabled', false);
+                $btn.attr('disabled', false);
             });
         }
         return false;
@@ -194,5 +204,5 @@ var vm = new ProjectsViewModel();
 ko.applyBindings(vm);
 
 $(function(){
-    vm.init();
+    vm.queryProjects();
 });

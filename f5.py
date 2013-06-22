@@ -20,7 +20,7 @@ debug = True
 if debug and not we_are_frozen():
     # 开发模式下面AssetsHandler就直接从开发目录下面读取assets
     AssetsHandler = StaticSiteHandler
-
+    pass
 
 Change = namedtuple('Change', 'time, path, type')
 
@@ -147,7 +147,7 @@ class F5Server(Application):
 
     def set_project(self, project):
         path = project['path']
-        black_list = project['blockPaths']
+        black_list = project.get('blockPaths', [])
         print 'set_project', path, black_list
 
         if len(self.handlers) > 1:
@@ -174,7 +174,7 @@ if __name__ == "__main__":
             break
         except socket.error:
             continue
-    print 'F5 server is started, please visit:', '127.0.0.1' if port == 80 else '127.0.0.1:%s' + port
+    print 'F5 server is started, please visit:', '127.0.0.1' if port == 80 else '127.0.0.1:%s' % port
 
     try:
         ioloop.IOLoop.instance().start()
