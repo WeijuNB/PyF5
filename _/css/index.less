@@ -1,3 +1,9 @@
+.opacity(@alpha) {
+  opacity: @alpha;
+  @filter_opacity: @alpha * 100;
+  filter: ~"alpha(@filter_opacity)";
+}
+
 body{
   overflow-y:scroll;
 }
@@ -12,35 +18,46 @@ h3 {
 #project-add-form{
   margin-bottom: 5px;
   padding-top: 5px;
-  padding-left: 20px;
 }
 
-ul#projects{
-  list-style: none;
-  padding: 0px;
-  margin: 0px;
-  border-top: 1px solid #eee;
-
-  li {
-    border-bottom: 1px solid #eee;
-    &.selected {
-      background-color:#A5C648;
-      &:hover {
-        background-color:#A5C648;
+#projects {
+  .project {
+    .path {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      a {
+        padding-left: 20px;
+        display: block;
+        color: #0088cc;
+        word-break: break-all;
       }
     }
-    &:hover {
-      background-color:#eee;
+    .op {
+      width: 20px;
+      a {
+        display: none;
+      }
+    }
+    &.selected {
+      .path a {
+        color: #888;
+        background-position: left;
+        background-repeat: no-repeat;
+        background-image: url('/_/img/bullet_green.png');
+      }
+    }
+    &:hover{
+      .op{
+        a {
+          display: block;
+          .opacity(0.3);
+          &:hover {
+            .opacity(1);
+          }
+        }
+      }
     }
 
-    a {
-      line-height: 50px;
-      display: block;
-      padding: 0 20px;
-    }
-    &.selected a{
-      color: white;
-    }
   }
 }
 
@@ -89,42 +106,36 @@ ul#folder-segments {
 
 #file-list {
   tbody{
-    td.op{
-      text-align: right;
-      a.block {
-        display: none;
-        width: 16px;
-        height: 16px;
-        background-image: url("/_/img/delete.png");
-        background-repeat: no-repeat;
-        background-position: center;
-        text-decoration:none;
+
+    tr {
+      a.op {display: none;}
+      &:hover {
+        a.op.block {display: block;}
+        a.op.unblock {display: none;}
       }
-    }
-    tr:hover{
-      td.op{
-        a.block {
-          display: inline-block;
-        }
-      }
-    }
-    tr.blocked{
       td.file {
-        a{
-          color: #444;
-          opacity: 0.3;
+        a {
+          display: block;
+          padding-left: 20px;
         }
       }
       td.op{
-        a.block{
-          background-image: url("/_/img/add.png");
+        a.op {
+          float:right;
         }
       }
     }
-    td.file {
-      a {
-        display: block;
-        padding-left: 20px;
+
+    tr.blocked{
+      &:hover {
+        a.op.block {display: none;}
+        a.op.unblock {display: block;}
+      }
+      td.file {
+        a {
+          color: #444;
+          .opacity(0.3);
+        }
       }
     }
   }

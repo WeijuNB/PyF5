@@ -9,6 +9,8 @@ INVALID_PARAMS = 'INVALID_PARAMS'
 INVALID_CMD = 'INVALID_CMD'
 PATH_IS_NOT_DIR = 'PATH_IS_NOT_DIR'
 PROJECT_NOT_EXISTS = 'PROJECT_NOT_EXISTS'
+PROJECT_EXISTS = 'PROJECT_EXISTS'
+
 
 class APIRequestHandler(RequestHandler):
     def setup(self):
@@ -51,8 +53,14 @@ class APIRequestHandler(RequestHandler):
     def respond_JSONP(self, data):
         self.application.log_request(self)
         callback_name = self.get_argument('callback', 'alert')
-        self.write('%s(%s);' % (callback_name, json.dumps(data)))
+        json_data = json.dumps(data)
+        ret = '%s(%s);' % (callback_name, json_data)
+        self.write(ret)
         self.finish()
+        print 'API:', '======================='
+        print self.request.uri
+        print json_data
+        print '===================='
 
 
 class OSAPI(APIRequestHandler):
@@ -115,7 +123,7 @@ class ProjectAPI(APIRequestHandler):
         self.save_config()
         return self.respond_success()
 
-    def all(self):
+    def list(self):
         for project in self.projects:
             project['isCurrent'] = project == self.application.project
         self.respond_success({'projects': self.projects})
@@ -123,37 +131,29 @@ class ProjectAPI(APIRequestHandler):
     def add(self):
         path = self.get_path_argument()
         if not path:
-            self.respond_error(INVALID_PARAMS, u'缺少path参数')
+            return self.respond_error(INVALID_PARAMS, u'缺少path参数')
         if not os.path.exists(path):
-            self.respond_error(PATH_NOT_EXISTS, u'路径不存在')
+            return self.respond_error(PATH_NOT_EXISTS, u'路径不存在')
 
-        existed_project = None
         for project in self.config['projects']:
             if project.get('path') == path:
-                existed_project = project
-                break
+                return self.respond_error(PROJECT_EXISTS, u'项目已存在')
 
-        if not existed_project:
-            project = {'path': path}
-            self.projects.append(project)
-        else:
-            for project in self.config['projects']:
-                if project['path'] == existed_project['path']:
-                    project['isCurrent'] = True
-                else:
-                    project['isCurrent'] = False
+        project = {'path': path}
+        self.projects.append(project)
+
         self.save_config()
-        return self.all()
+        return self.list()
 
     def remove(self):
-        path = self.get_path_argument()
+        path = self.get_path_argument('path')
         if not path:
             return self.respond_error(INVALID_PARAMS, u'缺少path参数')
         project = self.find(path)
         if project:
             self.projects.remove(project)
         self.save_config()
-        return self.all()
+        return self.list()
 
     def blockPaths(self):
         project_path = self.get_path_argument('projectPath')

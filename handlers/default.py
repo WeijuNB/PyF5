@@ -108,7 +108,6 @@ class ChangeRequestHandler(RequestHandler):
             'changes': [change._asdict() for change in changes],
             }
         ret = '%s(%s);' % (self.callback, json.dumps(ret))
-        print ret
         self.write(ret)
         self.finish()
         ioloop.IOLoop.instance().remove_timeout(self.timeout)

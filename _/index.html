@@ -9,6 +9,7 @@
     <script src="/_/js/libs/less.js"></script>
     <script src="/_/js/libs/jquery-1.8.2.min.js"></script>
     <script src="/_/js/libs/knockout-2.2.1.js"></script>
+    <script src="/_/js/libs/bootstrap.min.js"></script>
 </head>
 <body>
 
@@ -17,19 +18,33 @@
 
         <div class="span4">
             <h3>项目列表</h3>
-            <form id="project-add-form" data-bind="submit: onSubmit">
+
+            <form id="project-add-form" data-bind="submit: onSubmitProjectPath">
                 <div class="input-append">
                     <input class="span3" id="new-path-input"
                            type="text" placeholder="请输入目录...">
                     <button id="project-add-btn" class="btn btn-success" type="submit">添加</button>
                 </div>
             </form>
-            <ul id="projects" data-bind="foreach:projects">
-                <li data-bind="css:{selected: $parent.currentProject() == $data}">
-                    <a href="javascript:" data-bind="text:path, click:$parent.selectProject"></a>
-                </li>
-            </ul>
+
+            <table id="projects" class="table table-hover">
+                <tbody data-bind="foreach:projects">
+                    <tr class="project" data-bind="css:{selected: $parent.currentProject() == $data}">
+                        <td class="path">
+                            <a href="javascript:" data-bind="text:path, click:$parent.selectProject"></a>
+                        </td>
+                        <td class="op">
+                            <a href="javascript:" title="从列表中去除"
+                               data-toggle="tooltip" data-bind="click:$root.askRemoveProject">
+                                <i class="icon-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
         </div>
+
         <div id="right-panel" class="span8">
             <h3>文件列表</h3>
             <!-- ko with: currentProject -->
@@ -39,7 +54,7 @@
                         <td colspan="2">
                             <ul id="folder-segments">
                                 <li><a href="javascript:"
-                                       data-bind="text:path, click:$root.clickBreadCrumb"></a></li>
+                                       data-bind="text:path, click:$root.clickFolderSegment"></a></li>
                                 <!-- ko foreach: $root.folderSegments -->
                                 <li><a href="javascript:"
                                        data-bind="text: '/' + $data, click:$root.clickBreadCrumb"></a></li>
@@ -55,8 +70,14 @@
                                data-bind="text:name, css:type, click:$root.clickFile, attr:{href:url}"></a>
                         </td>
                         <td class="span1 op">
-                            <a href="javascript:" class="block" title="不监听更新"
-                                    data-bind="click:$root.toggleBlock">&nbsp;</a>
+                            <a href="javascript:" class="op block" data-toggle="tooltip" title="停止监听更新"
+                               data-bind="click:$root.toggleBlock">
+                                <i class="icon-ban-circle"></i>
+                            </a>
+                            <a href="javascript:" class="op unblock" data-toggle="tooltip" title="恢复监听更新"
+                               data-bind="click:$root.toggleBlock">
+                                <i class="icon-ok-circle"></i>
+                            </a>
                         </td>
                     </tr>
                 </tbody>

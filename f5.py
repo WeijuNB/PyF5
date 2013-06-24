@@ -17,7 +17,8 @@ from utils import module_path, get_rel_path, we_are_frozen
 from handlers import ChangeRequestHandler, AssetsHandler, StaticSiteHandler, APIRequestHandler
 
 debug = True
-if debug and not we_are_frozen():
+debug = debug or not we_are_frozen()
+if debug:
     # 开发模式下面AssetsHandler就直接从开发目录下面读取assets
     AssetsHandler = StaticSiteHandler
     pass
@@ -175,7 +176,10 @@ if __name__ == "__main__":
             break
         except socket.error:
             continue
-    print 'F5 server started, please visit:', '127.0.0.1' if port == 80 else '127.0.0.1:%s' % port
+
+    print 'F5 server started, please visit: 127.0.0.1' if port == 80 else '127.0.0.1:%s' % port
+    if not debug:
+        os.startfile('http://127.0.0.1:%s' % port)
 
     try:
         ioloop.IOLoop.instance().start()
