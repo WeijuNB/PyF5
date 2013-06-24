@@ -50,55 +50,80 @@ function ProjectsViewModel() {
 
     self.projects = ko.observableArray([]);
 
-    self.currentProject = ko.computed(function () {
-        var _currentProject = null;
-        $(self.projects()).each(function (i, project) {
-            if (project.isCurrent()) {
-                _currentProject = project;
-                return false;
+    self.currentProject = ko.computed({
+        read: function () {
+            var _currentProject = null;
+            $(self.projects()).each(function (i, project) {
+                if (project.isCurrent()) {
+                    _currentProject = project;
+                    return false;
+                }
+            });
+            return _currentProject;
+        },
+        write: function(project) {
+            if (project != self.currentProject()) {
+                $(self.projects()).each(function(i, item) {
+                    if (item == project) {
+                        project.isCurrent(true);
+                    } else {
+                        item.isCurrent(false)
+                    }
+                });
             }
-        });
-        return _currentProject;
+        },
+        owner: self
     });
     self.blockPaths = ko.observableArray([]);
     self.folderSegments = ko.observableArray([]);
     self.files = ko.observableArray([]);
 
     // projects ===============================================
-    self.queryProjects = function () {
-        queryAPI('project.list', {}, function (data) {
-            self.loadProjects(data['projects']);
-            $(self.projects()).each(function (i, project) {
-                if (project.isCurrent()) {
-                    self.queryFileList(project.path());
-                    self.queryBlockPaths(project.path());
-                    return false;
-                }
-            });
+    self.currentProject.subscribe(function(newProject) {
+        if (newProject) {
+            self.queryFileList(newProject.path());
+            self.queryBlockPaths(newProject.path());
             $('#projects .op a').tooltip();
+            $('#script-hint-link').tooltip();
+            if ($.cookie('show-script-hint') != 'false') {
+                self.showScriptHint();
+            } else {
+                self.hideScriptHint();
+            }
+        }
+    });
+
+    self.findProject = function(path) {
+        var foundProject = null;
+        $(self.projects()).each(function (i, project) {
+            if (project.path() == path) {
+                foundProject = project;
+                return false;
+            }
         });
+        return foundProject;
     };
 
-    self.loadProjects = function (project_objects) {
-        self.projects.removeAll();
-        $(project_objects).each(function (i, obj) {
-            self.projects.push(new ProjectModel(obj.path, obj.isCurrent));
+    self.queryProjects = function () {
+        queryAPI('project.list', {}, function (data) {
+            self.projects.removeAll();
+            $(data['projects']).each(function (i, obj) {
+                self.projects.push(new ProjectModel(obj.path, obj.isCurrent));
+            });
         });
     };
 
     self.selectProject = function (project) {
         queryAPI('project.setCurrent', {path: project.path()}, function (data) {
-            self.queryProjects();
+            self.currentProject(project);
         })
     };
 
     self.selectProjectWithPath = function (path) {
-        $(self.projects()).each(function (i, project) {
-            if (project.path() == path) {
-                self.selectProject(project);
-                return false;
-            }
-        });
+        var project = self.findProject(path);
+        if (project) {
+            self.selectProject(project);
+        }
     };
 
     self.askRemoveProject = function (project) {
@@ -230,6 +255,20 @@ function ProjectsViewModel() {
             self.queryBlockPaths(self.currentProject().path());
         });
     };
+
+    // =================================== misc
+    self.showScriptHint = function() {
+        $('#script-hint-link').hide();
+        $('#script-hint').show();
+        $.cookie('show-script-hint', true);
+    };
+
+    self.hideScriptHint = function() {
+        $('#script-hint-link').show();
+        $('#script-hint').hide();
+        $.cookie('show-script-hint', false);
+    }
+
 }
 
 var vm = new ProjectsViewModel();
@@ -238,4 +277,7 @@ ko.applyBindings(vm);
 
 $(function () {
     vm.queryProjects();
+    $('#host').text(
+        !location.port || location.port == 80 ? '127.0.0.1' : ('127.0.0.1:' + location.port)
+    );
 });

@@ -8,6 +8,7 @@
     <link href="/_/css/index.less" type="text/css" rel="stylesheet/less">
     <script src="/_/js/libs/less.js"></script>
     <script src="/_/js/libs/jquery-1.8.2.min.js"></script>
+    <script src="/_/js/libs/jquery.cookie.js"></script>
     <script src="/_/js/libs/knockout-2.2.1.js"></script>
     <script src="/_/js/libs/bootstrap.min.js"></script>
 </head>
@@ -46,12 +47,27 @@
         </div>
 
         <div id="right-panel" class="span8">
+
+            <a id="script-hint-link" script="display:none"
+               href="javascript:vm.showScriptHint()" class="pull-right"
+               title="动态页面的嵌入代码" data-toggle="tooltip" data-placement="left">
+                <i class="icon-chevron-left"></i><i class="icon-chevron-right"></i>
+            </a>
+
             <h3>文件列表</h3>
+
+            <div id="script-hint" class="alert alert-info" style="display:none">
+                <a href="javascript:vm.hideScriptHint()" class="close">&times;</a>
+                动态网站请在&lt;/body&gt;之前插入:<br/>
+                &lt;script src="http://<span id="host"></span>/_/js/reloader.js"&gt;&lt;/script&gt;
+            </div>
+
             <!-- ko with: currentProject -->
             <table id="file-list" class="table table-hover">
                 <thead>
                     <tr>
                         <td colspan="2">
+
                             <ul id="folder-segments">
                                 <li><a href="javascript:"
                                        data-bind="text:path, click:$root.clickFolderSegment"></a></li>
@@ -60,6 +76,7 @@
                                        data-bind="text: '/' + $data, click:$root.clickBreadCrumb"></a></li>
                                 <!-- /ko -->
                             </ul>
+
                         </td>
                     </tr>
                 </thead>
