@@ -1,0 +1,2 @@
+recursive-include pyf5/_ *.*
+exclude pyf5/config.pickle pyf5/assets.py

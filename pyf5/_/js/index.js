@@ -45,6 +45,13 @@ function FileModel(data) {
     self.url = ko.observable('');
 }
 
+function FolderSegment(name, path) {
+    var self = this;
+
+    self.name = ko.observable(name);
+    self.absolutePath = ko.observable(path);
+}
+
 function ProjectsViewModel() {
     var self = this;
 
@@ -79,20 +86,6 @@ function ProjectsViewModel() {
     self.files = ko.observableArray([]);
 
     // projects ===============================================
-    self.currentProject.subscribe(function(newProject) {
-        if (newProject) {
-            self.queryFileList(newProject.path());
-            self.queryBlockPaths(newProject.path());
-            $('#projects .op a').tooltip();
-            $('#script-hint-link').tooltip();
-            if ($.cookie('show-script-hint') != 'false') {
-                self.showScriptHint();
-            } else {
-                self.hideScriptHint();
-            }
-        }
-    });
-
     self.findProject = function(path) {
         var foundProject = null;
         $(self.projects()).each(function (i, project) {
@@ -104,18 +97,29 @@ function ProjectsViewModel() {
         return foundProject;
     };
 
-    self.queryProjects = function () {
+    self.queryProjects = function (init) {
         queryAPI('project.list', {}, function (data) {
             self.projects.removeAll();
             $(data['projects']).each(function (i, obj) {
                 self.projects.push(new ProjectModel(obj.path, obj.isCurrent));
             });
+            if (init) self.selectProject(self.currentProject());
         });
     };
 
     self.selectProject = function (project) {
         queryAPI('project.setCurrent', {path: project.path()}, function (data) {
             self.currentProject(project);
+            self.queryFileList(project.path());
+            self.queryBlockPaths(project.path());
+            $('#projects .op a').tooltip();
+            $('#script-hint-link').tooltip();
+            if ($.cookie('show-script-hint') != 'false') {
+                self.showScriptHint();
+            } else {
+                self.hideScriptHint();
+            }
+            self.folderSegments.removeAll();
         })
     };
 
@@ -167,6 +171,8 @@ function ProjectsViewModel() {
 
     // ================================= Files
     self.queryFileList = function (path) {
+        self.files.removeAll();
+
         queryAPI('os.listDir', {path: path}, function (data) {
             self.files.removeAll();
             $(data['list']).each(function (i, obj) {
@@ -182,47 +188,54 @@ function ProjectsViewModel() {
     self.refreshFolderSegments = function (path) {
         var rootPath = self.currentProject().path();
         var relPath = path.replace(rootPath, '');
+        var currentPath = rootPath;
         self.folderSegments.removeAll();
         $(relPath.split('/')).each(function (i, segment) {
+            if (currentPath[currentPath.length-1] != '/') {
+                currentPath += '/';
+            }
+            currentPath += segment;
             if (segment) {
-                self.folderSegments.push(segment);
+                self.folderSegments.push(new FolderSegment(segment, currentPath));
             }
         })
     };
 
     self.clickFile = function (file, event) {
         if (file.type() == 'DIR') {
-            self.refreshFolderSegments(file.absolutePath())
-            self.enterFolderSegment(file.name());
+            self.enterFolder(file.absolutePath());
             return false;
         }
         return true;
     };
 
-    self.clickFolderSegment = function (data, event) {
-        if (typeof data == 'object') {
-            self.enterFolderSegment('');
+    self.clickFolderSegment = function (obj, event) {
+        if (obj.path) {
+            self.enterFolder('');
         } else {
-            self.enterFolderSegment(data);
+            self.enterFolder(obj.absolutePath());
         }
     };
 
-    self.enterFolderSegment = function (name) {
-        var path = self.currentProject().path();
-        var matched_index = -1;
+    self.enterFolder = function (absolutePath) {
+        self.refreshFolderSegments(absolutePath);
+
+        var foundSegment = null;
+        var foundIndex = -1;
         $(self.folderSegments()).each(function (i, segment) {
-            path += ('/' + segment);
-            if (name == segment) {
-                matched_index = i;
-                return false;
-            }
+           if (segment.absolutePath() == absolutePath) {
+               foundSegment = segment;
+               foundIndex = i;
+               return false;
+           }
         });
-        if (matched_index > -1) {
-            self.queryFileList(path);
+
+        if (foundSegment) {
+            self.queryFileList(foundSegment.absolutePath());
         } else {
             self.queryFileList(self.currentProject().path());
         }
-        self.folderSegments.splice(matched_index + 1);
+        self.folderSegments.splice(foundIndex + 1);
     };
 
     // ========================== blockPath
@@ -276,7 +289,7 @@ var vm = new ProjectsViewModel();
 ko.applyBindings(vm);
 
 $(function () {
-    vm.queryProjects();
+    vm.queryProjects(true);
     $('#host').text(
         !location.port || location.port == 80 ? '127.0.0.1' : ('127.0.0.1:' + location.port)
     );

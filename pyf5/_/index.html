@@ -73,7 +73,7 @@
                                        data-bind="text:path, click:$root.clickFolderSegment"></a></li>
                                 <!-- ko foreach: $root.folderSegments -->
                                 <li><a href="javascript:"
-                                       data-bind="text: '/' + $data, click:$root.clickBreadCrumb"></a></li>
+                                       data-bind="text: '/' + $data.name(), click:$root.clickFolderSegment"></a></li>
                                 <!-- /ko -->
                             </ul>
 

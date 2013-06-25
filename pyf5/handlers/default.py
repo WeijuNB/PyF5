@@ -8,13 +8,15 @@ from StringIO import StringIO
 from tornado.web import StaticFileHandler, RequestHandler, asynchronous, HTTPError
 from tornado import ioloop
 
-from utils import get_rel_path
-from zfs import ZipFileSystem
-from assets import assets_zip64
+from pyf5.utils import get_rel_path, we_are_frozen
 
-
-assets_zip_file = StringIO(base64.decodestring(assets_zip64))
-zfs = ZipFileSystem(assets_zip_file)
+assets_zip_file = None
+VFS = None
+if we_are_frozen():
+    from pyf5.zfs import ZipFileSystem
+    from pyf5.assets import assets_zip64
+    assets_zip_file = StringIO(base64.decodestring(assets_zip64))
+    VFS = ZipFileSystem(assets_zip_file)
 
 
 class AssetsHandler(StaticFileHandler):
@@ -30,21 +32,21 @@ class AssetsHandler(StaticFileHandler):
     @classmethod
     def get_content(cls, abspath, start=None, end=None):
         rel_path = get_rel_path(abspath, 'assets://')
-        content = zfs.read(rel_path)
+        content = VFS.read(rel_path)
         return content
 
     def get_content_size(self):
-        return zfs.file_size(self.asset_path) or 0
+        return VFS.file_size(self.asset_path) or 0
 
     def get_modified_time(self):
-        return int(zfs.modified_at(self.asset_path)) or 0
+        return int(VFS.modified_at(self.asset_path)) or 0
 
     @classmethod
     def get_absolute_path(cls, root, path):
         return os.path.join('assets://', path)
 
     def validate_absolute_path(self, root, absolute_path):
-        if not zfs.file_size(self.asset_path):
+        if not VFS.file_size(self.asset_path):
             raise HTTPError(404)
         return absolute_path
 

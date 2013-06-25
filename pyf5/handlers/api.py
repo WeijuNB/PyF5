@@ -1,7 +1,7 @@
 #coding:utf-8
 import json
 from tornado.web import RequestHandler, asynchronous, os
-from utils import get_rel_path
+from pyf5.utils import get_rel_path
 
 
 PATH_NOT_EXISTS = 'PATH_NOT_EXISTS'

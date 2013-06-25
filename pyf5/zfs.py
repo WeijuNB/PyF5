@@ -5,7 +5,8 @@ import sys
 import time
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from utils import get_rel_path
+from pyf5.utils import get_rel_path
+
 
 class ZipFileSystem(object):
     def __init__(self, zip_file):
@@ -46,7 +47,6 @@ class ZipFileSystem(object):
         print 'done!'
 
 
-
 if __name__ == '__main__':
     import base64
     zip_file_name = 'assets.zip'
@@ -65,7 +65,3 @@ if __name__ == '__main__':
     rel_path = 'js/reloader.js'
     print zfs.read(rel_path)
     print zfs.modified_at(rel_path)
-
-
-
-
