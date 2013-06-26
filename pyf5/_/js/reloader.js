@@ -255,8 +255,10 @@
     }
 
 
-    function queryChanges() {
+    function queryChanges(init) {
         var url = f5RootUrl + 'api/changes?callback=_F5.handleChanges';
+        if (init)
+            url += '&init=1';
         $.getScript(url)
             .fail(function () {
                 if (retryCount >= MAX_RETRY) {
@@ -279,7 +281,7 @@
             if (changes.length > 0) {
                 updatePageWithChanges(changes);
             }
-            queryChanges();
+            setTimeout(queryChanges, 100);
         }
     }
 
@@ -299,6 +301,7 @@
         restoreScrollPosition();
         if (isIE())
             updateStyleSheets();
-        queryChanges();
+        queryChanges(true);
     });
+
 })();

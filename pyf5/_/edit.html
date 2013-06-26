@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit: {{file_path}}</title>
+    <script src="/_/js/libs/marked.js"></script>
+    <script src="/_/js/libs/highlight.pack.js"></script>
+    <script src="/_/js/libs/codemirror/lib/codemirror.js"></script>
+    <script src="/_/js/libs/codemirror/xml/xml.js"></script>
+    <script src="/_/js/libs/codemirror/markdown/markdown.js"></script>
+    <script src="/_/js/libs/codemirror/gfm/gfm.js"></script>
+    <script src="/_/js/libs/codemirror/javascript/javascript.js"></script>
+    <script src="/_/js/libs/jquery-1.8.2.min.js"></script>
+    <script src="/_/js/libs/knockout-2.2.1.js"></script>
+
+    <link href="/_/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/_/css/bootstrap-responsive.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/_/js/libs/codemirror/lib/codemirror.css">
+    <link href="/_/css/edit.less" type="text/css" rel="stylesheet/less">
+    <script src="/_/js/libs/less.js"></script>
+    <script>
+        var absolutePath = '{{abs_path}}';
+
+    </script>
+</head>
+<body>
+<div id="tool-bar">
+    <button class="btn" data-bind="disable:changed" >保存（ctrl+s）</button>
+</div>
+<div id="in">
+    <form><textarea id="code">{{code}}</textarea></form>
+</div>
+<div id="out" data-bind="html:currentOutput"></div>
+
+<script src="/_/js/api.js"></script>
+<script src="/_/js/edit.js"></script>
+<!--<script src="http://127.0.0.1:81/_/js/reloader.js"></script>-->
+</body>
+</html>

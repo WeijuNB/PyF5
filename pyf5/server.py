@@ -12,15 +12,21 @@ from tornado import ioloop
 from tornado.web import Application, RedirectHandler, StaticFileHandler
 
 from pyf5.utils import module_path, get_rel_path, we_are_frozen, config_path
-from pyf5.handlers import ChangeRequestHandler, AssetsHandler, StaticSiteHandler, APIRequestHandler
+from pyf5.handlers import ChangeRequestHandler, AssetsHandler, StaticSiteHandler, APIRequestHandler, MarkDownHandler
 
+MODE = None
 if we_are_frozen():
-    # freeze 模式下面，使用打包的Assets文件
-    pass
+    MODE = 'freezed'
 elif 'site-package' in module_path():
+    MODE = 'source'
+else:
+    MODE = 'develop'
+
+# freeze 模式下面，使用打包的Assets文件
+if MODE == 'source':
     # 源代码发布出去以后，使用最普通的StaticFileHandler
     AssetsHandler = StaticFileHandler
-else:
+elif MODE == 'develop':
     # 开发中，使用会自动更新的StaticSiteHandler
     AssetsHandler = StaticSiteHandler
 
@@ -128,19 +134,27 @@ class F5Server(Application):
                 (r"/", RedirectHandler, {'url': '/_/index.html'}),
             ]
         if not settings:
-            settings = {'debug': True}
+            settings = {
+                'debug': True,
+                'template_path': os.path.join(module_path(), '_'),
+            }
         if not default_host:
             default_host = '.*$'
 
         Application.__init__(self, handlers, default_host, transforms, wsgi, **settings)
         self.internal_handler_count = len(handlers)
 
-        self.config_path = config_path()
-        self.config = self.load_config()
-
         self.change_request_handlers = set()
         self.observer = ChangesObserver(changes_handler=self.change_happened)
+
+        self.config_path = config_path()
+        self.config = self.load_config()
         self.project = None
+        for project in self.config.get('projects', []):
+            if project.get('isCurrent'):
+                self.project = project
+                self.set_project(project)
+                break
 
     def load_config(self):
         return cPickle.load(open(self.config_path)) if os.path.exists(self.config_path) else {}
@@ -157,11 +171,19 @@ class F5Server(Application):
             self.handlers.pop(-1)
 
         self.add_handlers(".*$", [
-            (r"/(.*)", StaticSiteHandler, {"path": path})
+            (r"/(.*)\.md", MarkDownHandler),
+            (r"/(.*)", StaticSiteHandler, {"path": path}),
         ])
         handle = self.handlers.pop(0)
         self.handlers.insert(self.internal_handler_count, handle)
         self.observer.observe(path, black_list)
+        if MODE == 'develop':
+            self.observer.observer.schedule(self.observer, module_path(), recursive=True)
+
+    def current_project_path(self):
+        if not self.project:
+            return None
+        return self.project.get('path')
 
     def change_happened(self):
         for handler in list(self.change_request_handlers):

@@ -4,6 +4,7 @@ import os
 import json
 import time
 from StringIO import StringIO
+from urllib import unquote
 
 from tornado.web import StaticFileHandler, RequestHandler, asynchronous, HTTPError
 from tornado import ioloop
@@ -17,6 +18,24 @@ if we_are_frozen():
     from pyf5.assets import assets_zip64
     assets_zip_file = StringIO(base64.decodestring(assets_zip64))
     VFS = ZipFileSystem(assets_zip_file)
+
+
+class MarkDownHandler(RequestHandler):
+    def get(self, *args, **kwargs):
+        root_path = self.application.current_project_path()
+        code = ''
+        if root_path:
+            rel_path = self.request.path[1:]
+            rel_path = unquote(rel_path).decode('utf-8')
+            md_path = os.path.join(root_path, rel_path).replace('\\', '/')
+            code = open(md_path).read()
+        print md_path
+        self.render('edit.html',
+                    code=code,
+                    file_path=rel_path,
+                    abs_path=md_path,
+        )
+
 
 
 class AssetsHandler(StaticFileHandler):
@@ -86,10 +105,15 @@ class ChangeRequestHandler(RequestHandler):
         self.application.change_request_handlers.add(self)
 
         self.callback = self.get_argument('callback', '_F5.handleChanges')
-        self.max_pending_time = 20
+        self.init = self.get_argument('init', False)
         self.query_time = time.time()
 
-        deadline = time.time() + self.max_pending_time
+        if self.get_argument('init', False):
+            # 初次载入changes的时候，有可能因为长连接而会留下一个旋转的菊花，所以在初次请求的时候，比较快地返回数据
+            # 让他快速进入第二个链接，希望能不出现菊花
+            deadline = time.time() + 3
+        else:
+            deadline = time.time() + 20
         self.timeout = ioloop.IOLoop.instance().add_timeout(deadline, lambda: self.return_changes([]))
 
     @asynchronous

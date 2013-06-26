@@ -1,31 +1,3 @@
-function queryAPI(cmd, params, success_handler, error_handler) {
-    var url = '/_/api?';
-    var callback_name = '_jsonp_callback_' + parseInt(Math.random() * 100000000000);
-    var param_pairs = ['cmd=' + cmd, 'callback=' + callback_name];
-
-    for (var key in params) {
-        param_pairs.push(key + '=' + encodeURIComponent(params[key]));
-    }
-    url += param_pairs.join('&');
-
-    window[callback_name] = function (data) {
-        window[callback_name] = undefined;
-        if (data.status == 'ok') {
-            success_handler(data);
-        } else if (error_handler) {
-            error_handler(data);
-        } else {
-            alert(data['message']);
-        }
-    };
-    $.getScript(url)
-        .fail(function () {
-            if (window[callback_name]) {
-                window[callback_name] = undefined;
-            }
-        });
-}
-
 
 function ProjectModel(path, isCurrent) {
     var self = this;
@@ -98,7 +70,7 @@ function ProjectsViewModel() {
     };
 
     self.queryProjects = function (init) {
-        queryAPI('project.list', {}, function (data) {
+        queryAPIScript('project.list', {}, function (data) {
             self.projects.removeAll();
             $(data['projects']).each(function (i, obj) {
                 self.projects.push(new ProjectModel(obj.path, obj.isCurrent));
@@ -108,7 +80,7 @@ function ProjectsViewModel() {
     };
 
     self.selectProject = function (project) {
-        queryAPI('project.setCurrent', {path: project.path()}, function (data) {
+        queryAPIScript('project.setCurrent', {path: project.path()}, function (data) {
             self.currentProject(project);
             self.queryFileList(project.path());
             self.queryBlockPaths(project.path());
@@ -137,15 +109,16 @@ function ProjectsViewModel() {
     };
 
     self.removeProject = function (project) {
-        queryAPI('project.remove', {'path': project.path()}, function (data) {
+        queryAPIScript('project.remove', {'path': project.path()}, function (data) {
             self.projects.remove(project);
         })
     };
 
     self.addProjectWithPath = function (path) {
+        path = path.replace(/\\/g, '/');
         var $input = $("#new-path-input");
         var $btn = $('#project-add-btn');
-        queryAPI('project.add', {path: path}, function (data) {
+        queryAPIScript('project.add', {path: path}, function (data) {
             self.projects.push(new ProjectModel(path, false));
             $input.attr('disabled', false).val('');
             $btn.attr('disabled', false);
@@ -173,7 +146,7 @@ function ProjectsViewModel() {
     self.queryFileList = function (path) {
         self.files.removeAll();
 
-        queryAPI('os.listDir', {path: path}, function (data) {
+        queryAPIScript('os.listDir', {path: path}, function (data) {
             self.files.removeAll();
             $(data['list']).each(function (i, obj) {
                 var file = new FileModel(obj);
@@ -240,7 +213,7 @@ function ProjectsViewModel() {
 
     // ========================== blockPath
     self.queryBlockPaths = function (projectPath) {
-        queryAPI('project.blockPaths', {'projectPath': self.currentProject().path()}, function (data) {
+        queryAPIScript('project.blockPaths', {'projectPath': self.currentProject().path()}, function (data) {
             self.blockPaths(data['blockPaths']);
             self.refreshFilesBlockStatus();
         });
@@ -264,7 +237,7 @@ function ProjectsViewModel() {
             blockPath: data.absolutePath(),
             action: blocked ? 'off' : 'on'
         };
-        queryAPI('project.toggleBlockPath', params, function (data) {
+        queryAPIScript('project.toggleBlockPath', params, function (data) {
             self.queryBlockPaths(self.currentProject().path());
         });
     };

@@ -13,28 +13,36 @@ PROJECT_EXISTS = 'PROJECT_EXISTS'
 
 
 class APIRequestHandler(RequestHandler):
+    def initialize(self):
+        self.API_MAPPING = {
+            'os': OSAPI,
+            'project': ProjectAPI,
+        }
+
     def setup(self):
         pass
 
-    @asynchronous
-    def get(self, *args, **kwargs):
+    def handle_request(self):
         cmd_parts = self.get_argument('cmd', None).split('.')
         if len(cmd_parts) > 2:
             return self.respond_error(INVALID_CMD, u'cmd格式不正确')
         method = cmd_parts[-1]
         category = cmd_parts[0] if len(cmd_parts) == 2 else None
 
-        API_MAPPING = {
-            'os': OSAPI,
-            'project': ProjectAPI,
-        }
-
-        APIClass = API_MAPPING.get(category)
+        APIClass = self.API_MAPPING.get(category)
         if APIClass:
             self.__class__ = APIClass
             self.setup()
 
         apply(self.__getattribute__(method))
+
+    @asynchronous
+    def get(self, *args, **kwargs):
+        self.handle_request()
+
+    @asynchronous
+    def post(self, *args, **kwargs):
+        self.handle_request()
 
     def respond_success(self, data=None):
         if not data:
@@ -52,14 +60,17 @@ class APIRequestHandler(RequestHandler):
 
     def respond_JSONP(self, data):
         self.application.log_request(self)
-        callback_name = self.get_argument('callback', 'alert')
+        callback_name = self.get_argument('callback', None)
         json_data = json.dumps(data)
-        ret = '%s(%s);' % (callback_name, json_data)
+        if callback_name:
+            ret = '%s(%s);' % (callback_name, json_data)
+        else:
+            ret = json_data
         self.write(ret)
         self.finish()
         print 'API:', '======================='
         print self.request.uri
-        print json_data
+        print ret
         print '===================='
 
 
@@ -84,6 +95,16 @@ class OSAPI(APIRequestHandler):
             ))
         ret.sort(key=lambda item: (item['type'] != 'DIR', name))
         return self.respond_success({'list': ret})
+
+    def writeFile(self):
+        path = self.get_argument('path', '')
+        content = self.get_argument('content', '')
+        if not path:
+            return self.respond_error(INVALID_PARAMS, u'缺少path参数')
+        if not os.path.exists(path):
+            return self.respond_error(PATH_NOT_EXISTS, u'路径不存在:' + path)
+        open(path, 'w').write(content.encode('utf-8'))
+        return self.respond_success()
 
 
 class ProjectAPI(APIRequestHandler):
