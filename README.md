@@ -1,7 +1,7 @@
-PyF5
-====
+PyF5(Alpha)
+==========
 
-Satic Files Server & Web Page Auto Reloader.
+A Satic Files Server & Web Page Auto Reloader, And Also a Markdown Editor.
 
 
 Install
@@ -42,6 +42,15 @@ Just paste the script tag into your web page's source code (before &lt;/body&gt;
 And open the page with its original url. Done!
 
 
+Markdown Editor
+---------------
+PyF5 is also a Markdown Editor.
+
+If you click a **.md** file in the file list, PyF5 will open it with a markdown editor in the new tab.
+
+You can see a live preview on the right side of the editor, and press ctrl+s to save.
+
+
 Dependencies
 ------------
 python
@@ -53,6 +62,9 @@ html/css/js
 * jquery
 * knockout.js
 * less.js
+* CodeMirror
+* marked.js
+* highlight.js
 
 
 Platforms

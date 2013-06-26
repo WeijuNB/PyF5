@@ -151,7 +151,10 @@ function ProjectsViewModel() {
             $(data['list']).each(function (i, obj) {
                 var file = new FileModel(obj);
                 var relPath = file.absolutePath().replace(self.currentProject().path(), '');
-                file.url(/.*?:\/\/.*?\//.exec(location.href)[0] + relPath.substr(1));
+                if (relPath && relPath[0] == '/') {
+                    relPath = relPath.substr(1);
+                }
+                file.url(/.*?:\/\/.*?\//.exec(location.href)[0] + relPath);
                 self.files.push(file);
             });
             self.refreshFilesBlockStatus();
