@@ -120,8 +120,10 @@
             }
 
             if (typeof options.expires === 'number') {
-                var days = options.expires, t = options.expires = new Date();
-                t.setDate(t.getDate() + days);
+                var seconds = options.expires,
+                    date = new Date();
+                date.setTime(date.getTime() + seconds * 1000);
+                options.expires = date;
             }
 
             value = String(value);
@@ -162,6 +164,10 @@
 
     function isIE() {
         return navigator && navigator.appName && navigator.appName === 'Microsoft Internet Explorer';
+    }
+
+    function time() {
+        return (new Date()).getTime() / 1000;
     }
 
     function getF5RootUrl() {
@@ -256,9 +262,13 @@
 
 
     function queryChanges(init) {
-        var url = f5RootUrl + 'api/changes?callback=_F5.handleChanges';
-        if (init)
-            url += '&init=1';
+        var ts = cookie('_F5TS') ? cookie('_F5TS') : time(),
+            url = f5RootUrl + 'api/changes?callback=_F5.handleChanges&ts=' + ts;
+
+        if (init) {
+            url += '&init=1'
+        }
+
         $.getScript(url)
             .fail(function () {
                 if (retryCount >= MAX_RETRY) {
@@ -277,6 +287,7 @@
 
         trace(data);
         if (data['status'] == 'ok') {
+            cookie('_F5TS', parseFloat(data['time']), {expires: 30});
             changes = data['changes'];
             if (changes.length > 0) {
                 updatePageWithChanges(changes);

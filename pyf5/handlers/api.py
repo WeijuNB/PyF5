@@ -23,6 +23,10 @@ class APIRequestHandler(RequestHandler):
         pass
 
     def handle_request(self):
+        if self.request.headers.get('Origin'):
+            self.set_header('Access-Control-Allow-Origin', self.request.headers.get('Origin'))
+            self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+            self.set_header('Access-Control-Allow-Headers', 'Content-Type')
         cmd_parts = self.get_argument('cmd', None).split('.')
         if len(cmd_parts) > 2:
             return self.respond_error(INVALID_CMD, u'cmd格式不正确')
@@ -43,6 +47,14 @@ class APIRequestHandler(RequestHandler):
     @asynchronous
     def post(self, *args, **kwargs):
         self.handle_request()
+
+    @asynchronous
+    def options(self, *args, **kwargs):
+        if self.request.headers.get('Origin'):
+            self.set_header('Access-Control-Allow-Origin', self.request.headers.get('Origin'))
+            self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+            self.set_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.finish()
 
     def respond_success(self, data=None):
         if not data:
@@ -140,7 +152,10 @@ class ProjectAPI(APIRequestHandler):
 
         for project in self.projects:
             if project.get('path') == path:
+                project['isCurrent'] = True
                 self.application.set_project(project)
+            else:
+                project['isCurrent'] = False
         self.save_config()
         return self.respond_success()
 

@@ -5,6 +5,7 @@ import json
 import time
 from StringIO import StringIO
 from urllib import unquote
+import gc
 
 from tornado.web import StaticFileHandler, RequestHandler, asynchronous, HTTPError
 from tornado import ioloop
@@ -85,6 +86,7 @@ class StaticSiteHandler(StaticFileHandler):
 
     @classmethod
     def get_content(cls, abspath, start=None, end=None):
+        gc.collect()  # 在mp4内容的时候，如果刷新网页会导致10053错误，并且内存不能回收，这里粗暴处理一下
         if cls.is_html_path(abspath):
             html = open(abspath, 'r').read()
             html = html.replace('</body>', cls.SCRIPT_AND_END_OF_BODY)
@@ -106,7 +108,10 @@ class ChangeRequestHandler(RequestHandler):
 
         self.callback = self.get_argument('callback', '_F5.handleChanges')
         self.init = self.get_argument('init', False)
-        self.query_time = time.time()
+        try:
+            self.query_time = float(self.get_argument('ts', None))
+        except (ValueError, TypeError):
+            self.query_time = time.time()
 
         if self.get_argument('init', False):
             # 初次载入changes的时候，有可能因为长连接而会留下一个旋转的菊花，所以在初次请求的时候，比较快地返回数据
@@ -129,10 +134,12 @@ class ChangeRequestHandler(RequestHandler):
             self.return_changes(changes)
 
     def return_changes(self, changes):
+        self.set_header('Content-Type', "text/javascript")
         ret = {
             'status': 'ok',
+            'time': time.time(),
             'changes': [change._asdict() for change in changes],
-            }
+        }
         ret = '%s(%s);' % (self.callback, json.dumps(ret))
         self.write(ret)
         self.finish()
