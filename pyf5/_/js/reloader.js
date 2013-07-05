@@ -147,7 +147,7 @@
     // ================================ end of libs ==============================
 
     var debug = true;
-    var trace = debug && window.console ?
+    var trace = debug && window.console && window.console.apply ?
         function() {console.log.apply(console, arguments)} :
         function() {};
 

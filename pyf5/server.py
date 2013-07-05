@@ -52,7 +52,7 @@ class ChangesObserver(FileSystemEventHandler):
     def get_changes_since(self, ts):
         ret = []
         for change in self.changes:
-            if change[0] >= ts:
+            if change[0] > ts:
                 ret.append(change)
         return ret
 
@@ -187,7 +187,10 @@ class F5Server(Application):
 
     def change_happened(self):
         for handler in list(self.change_request_handlers):
-            handler.change_happened(self.observer.changes)
+            handler.change_happened()
+
+    def get_changes_since(self, ts):
+        return self.observer.get_changes_since(ts)
 
 if __name__ == "__main__":
     pass

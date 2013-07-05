@@ -38,7 +38,6 @@ class MarkDownHandler(RequestHandler):
         )
 
 
-
 class AssetsHandler(StaticFileHandler):
     def initialize(self, path, default_filename=None):
         StaticFileHandler.initialize(self, path, default_filename)
@@ -112,28 +111,28 @@ class ChangeRequestHandler(RequestHandler):
             self.query_time = float(self.get_argument('ts', None))
         except (ValueError, TypeError):
             self.query_time = time.time()
-
-        if self.get_argument('init', False):
-            # 初次载入changes的时候，有可能因为长连接而会留下一个旋转的菊花，所以在初次请求的时候，比较快地返回数据
-            # 让他快速进入第二个链接，希望能不出现菊花
-            deadline = time.time() + 3
-        else:
-            deadline = time.time() + 20
-        self.timeout = ioloop.IOLoop.instance().add_timeout(deadline, lambda: self.return_changes([]))
+        self.timeout = None
 
     @asynchronous
     def get(self, *args, **kwargs):
-        pass
-
-    def change_happened(self, all_changes):
-        changes = []
-        for change in all_changes:
-            if change.time > self.query_time:
-                changes.append(change)
+        changes = self.application.get_changes_since(self.query_time)
         if changes:
-            self.return_changes(changes)
+            self.respond_changes(changes)
+        else:
+            if self.init:
+                # 初次载入changes的时候，有可能因为长连接而会留下一个旋转的菊花，所以在初次请求的时候，比较快地返回数据
+                # 让他快速进入第二个链接，希望能不出现菊花
+                deadline = time.time() + 3
+            else:
+                deadline = time.time() + 20
+            self.timeout = ioloop.IOLoop.instance().add_timeout(deadline, lambda: self.respond_changes([]))
 
-    def return_changes(self, changes):
+    def change_happened(self):
+        changes = self.application.get_changes_since(self.query_time)
+        if changes:
+            self.respond_changes(changes)
+
+    def respond_changes(self, changes):
         self.set_header('Content-Type', "text/javascript")
         ret = {
             'status': 'ok',
@@ -143,7 +142,8 @@ class ChangeRequestHandler(RequestHandler):
         ret = '%s(%s);' % (self.callback, json.dumps(ret))
         self.write(ret)
         self.finish()
-        ioloop.IOLoop.instance().remove_timeout(self.timeout)
+        if self.timeout:
+            ioloop.IOLoop.instance().remove_timeout(self.timeout)
         self.application.change_request_handlers.remove(self)
 
 
