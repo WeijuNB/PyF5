@@ -1,5 +1,9 @@
 #coding:utf-8
+from functools import partial
 import json
+import time
+from tornado import gen, ioloop
+from tornado.httpclient import AsyncHTTPClient
 from tornado.web import RequestHandler, asynchronous, os
 from pyf5.utils import get_rel_path
 
@@ -17,6 +21,7 @@ class APIRequestHandler(RequestHandler):
         self.API_MAPPING = {
             'os': OSAPI,
             'project': ProjectAPI,
+            'url': UrlAPI,
         }
 
     def setup(self):
@@ -243,3 +248,26 @@ class ProjectAPI(APIRequestHandler):
             project['blockPaths'].remove(rel_path)
         self.save_config()
         return self.respond_success({})
+
+
+class UrlAPI(APIRequestHandler):
+    def setup(self):
+        pass
+
+    def checkAlive(self):
+        url = self.get_argument('url', None)
+        if not url:
+            return self.respond_error(INVALID_PARAMS, u'缺少url参数')
+        self.tryCheckAlive(url)
+
+    def tryCheckAlive(self, url, count=0):
+        client = AsyncHTTPClient()
+        client.fetch(url, partial(self.checkAliveRespond, url, count), connect_timeout=1, request_timeout=1)
+
+    def checkAliveRespond(self, url, count, response):
+        if response.code / 100 in [2, 3]:
+            return self.respond_success({})
+        elif count > 3:
+            return self.respond_error('NOT_ALIVE', u'目标网址不可用')
+        else:
+            ioloop.IOLoop.instance().add_timeout(time.time() + 1, lambda: self.tryCheckAlive(url, count + 1))

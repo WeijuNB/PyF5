@@ -159,7 +159,8 @@
 
     window._F5 = {
         UrlUtils: UrlUtils,
-        handleChanges: handleChanges
+        handleChanges: handleChanges,
+        refresh: refresh
     };
 
     function isIE() {
@@ -211,7 +212,7 @@
         var links, href, hasLess = false;
         links = findLINKs(path);
         if (links.length == 0) {
-            refresh();
+            checkAliveAndRefresh();
         } else {
             $(links).each(function(i, link) {
                 href = link.href || '';
@@ -303,9 +304,22 @@
             if (ext == '.css' || ext == '.less') {
                 updateStyleSheets(path);
             } else {
-                refresh();
+                checkAliveAndRefresh();
             }
         });
+    }
+
+    function checkAliveAndRefresh() {
+        var api_url = f5RootUrl + 'api' +
+            '?cmd=url.checkAlive' +
+            '&url=' + encodeURIComponent(location.href) +
+            '&callback=_F5.refresh';
+        setTimeout(function () {
+            $.getScript(api_url)
+                .fail(function() {
+                    refresh();
+                });
+        }, 100); // 有可能autoload的服务器也需要时间去监测更新
     }
 
     $(function () {
