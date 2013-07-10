@@ -155,7 +155,8 @@
         self = this,
         f5RootUrl = getF5RootUrl(),
         retryCount = 0,
-        MAX_RETRY = 3;
+        MAX_RETRY = 3,
+        pullDelay = 1;
 
     window._F5 = {
         UrlUtils: UrlUtils,
@@ -247,8 +248,6 @@
             window.pageYOffset = y;
         if (document.documentElement.scrollTop != null)
             document.documentElement.scrollTop = y;
-        if (window.pageYOffset != null)
-            window.pageYOffset = y;
         if (document.body.scrollTop != null)
             document.body.scrollTop = y
     }
@@ -262,12 +261,14 @@
     }
 
 
-    function queryChanges(init) {
+    function queryChanges() {
         var ts = cookie('_F5TS') ? cookie('_F5TS') : time(),
             url = f5RootUrl + 'api/changes?callback=_F5.handleChanges&ts=' + ts;
 
-        if (init) {
-            url += '&init=1'
+        url += '&delay=' + pullDelay;
+        pullDelay += 2;
+        if (pullDelay > 20) {
+            pullDelay = 20;
         }
 
         $.getScript(url)
@@ -323,10 +324,12 @@
     }
 
     $(function () {
-        restoreScrollPosition();
         if (isIE())
             updateStyleSheets();
-        queryChanges(true);
+        setTimeout(function () {
+            restoreScrollPosition();
+            queryChanges();
+        }, 300);
     });
 
 })();

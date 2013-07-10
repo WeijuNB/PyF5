@@ -35,7 +35,7 @@ class MarkDownHandler(RequestHandler):
                     code=code,
                     file_path=rel_path,
                     abs_path=md_path,
-        )
+                    )
 
 
 class AssetsHandler(StaticFileHandler):
@@ -106,7 +106,10 @@ class ChangeRequestHandler(RequestHandler):
         self.application.change_request_handlers.add(self)
 
         self.callback = self.get_argument('callback', '_F5.handleChanges')
-        self.init = self.get_argument('init', False)
+        try:
+            self.delay = int(self.get_argument('delay', 20))
+        except (ValueError, TypeError):
+            self.delay = 20
         try:
             self.query_time = float(self.get_argument('ts', None))
         except (ValueError, TypeError):
@@ -119,12 +122,7 @@ class ChangeRequestHandler(RequestHandler):
         if changes:
             self.respond_changes(changes)
         else:
-            if self.init:
-                # 初次载入changes的时候，有可能因为长连接而会留下一个旋转的菊花，所以在初次请求的时候，比较快地返回数据
-                # 让他快速进入第二个链接，希望能不出现菊花
-                deadline = time.time() + 3
-            else:
-                deadline = time.time() + 20
+            deadline = time.time() + self.delay
             self.timeout = ioloop.IOLoop.instance().add_timeout(deadline, lambda: self.respond_changes([]))
 
     def change_happened(self):
