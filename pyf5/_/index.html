@@ -46,12 +46,15 @@
 
         </div>
 
-        <div id="right-panel" class="span8">
+        <div id="right-panel" class="span8" data-bind="with:currentProject">
 
-            <a id="script-hint-link" script="display:none"
-               href="javascript:vm.showScriptHint()" class="pull-right"
-               title="动态页面的嵌入代码" data-toggle="tooltip" data-placement="left">
-                <i class="icon-chevron-left"></i><i class="icon-chevron-right"></i>
+            <a id="script-hint-link" class="btn btn-small pull-right"
+               data-toggle="tooltip"
+               data-placement="left"
+               style="display:none"
+               href="javascript:vm.showScriptHint()"
+               title="动态页面的嵌入代码">
+                <i class="icon-cog"></i>
             </a>
 
             <h3>文件列表</h3>
@@ -62,44 +65,40 @@
                 &lt;script src="http://<span id="host"></span>/_/js/reloader.js"&gt;&lt;/script&gt;
             </div>
 
-            <!-- ko with: currentProject -->
+            <ul class="breadcrumb">
+                <li>
+                    <a href="javascript:"
+                       data-bind="text:path, click:$root.clickFolderSegment"></a>
+                </li>
+                <!-- ko foreach: $root.folderSegments -->
+                <li>
+                    <span class="divider">/</span>
+                    <a href="javascript:"
+                       data-bind="text: $data.name(), click:$root.clickFolderSegment"></a>
+                </li>
+                <!-- /ko -->
+            </ul>
+
             <table id="file-list" class="table table-hover">
-                <thead>
-                    <tr>
-                        <td colspan="2">
-
-                            <ul id="folder-segments">
-                                <li><a href="javascript:"
-                                       data-bind="text:path, click:$root.clickFolderSegment"></a></li>
-                                <!-- ko foreach: $root.folderSegments -->
-                                <li><a href="javascript:"
-                                       data-bind="text: '/' + $data.name(), click:$root.clickFolderSegment"></a></li>
-                                <!-- /ko -->
-                            </ul>
-
-                        </td>
-                    </tr>
-                </thead>
                 <tbody data-bind="foreach:$root.files">
-                    <tr data-bind="css:{blocked:isBlocked}">
+                    <tr data-bind="css:{mute:isMute}">
                         <td class="file">
                             <a href="javascript:" class="icon" target="_blank"
                                data-bind="text:name, css:type, click:$root.clickFile, attr:{href:url}"></a>
                         </td>
                         <td class="span1 op">
-                            <a href="javascript:" class="op block" data-toggle="tooltip" title="停止监听更新"
-                               data-bind="click:$root.toggleBlock">
+                            <a href="javascript:" class="op mute" data-toggle="tooltip" title="停止监听更新"
+                               data-bind="click:$root.toggleMute">
                                 <i class="icon-ban-circle"></i>
                             </a>
-                            <a href="javascript:" class="op unblock" data-toggle="tooltip" title="恢复监听更新"
-                               data-bind="click:$root.toggleBlock">
+                            <a href="javascript:" class="op unmute" data-toggle="tooltip" title="恢复监听更新"
+                               data-bind="click:$root.toggleMute">
                                 <i class="icon-ok-circle"></i>
                             </a>
                         </td>
                     </tr>
                 </tbody>
             </table>
-            <!-- /ko -->
         </div>
     </div>
 </div>

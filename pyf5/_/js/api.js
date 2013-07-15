@@ -1,12 +1,12 @@
 function queryAPIScript(cmd, params, success_handler, error_handler) {
-    var url = '/_/api?';
+    var url = '/_/api/' + cmd;
     var callback_name = '_jsonp_callback_' + parseInt(Math.random() * 100000000000);
-    var param_pairs = ['cmd=' + cmd, 'callback=' + callback_name];
+    var param_pairs = ['callback=' + callback_name];
 
     for (var key in params) {
         param_pairs.push(key + '=' + encodeURIComponent(params[key]));
     }
-    url += param_pairs.join('&');
+    url = url + '?' + param_pairs.join('&');
 
     window[callback_name] = function (data) {
         window[callback_name] = undefined;
@@ -27,7 +27,7 @@ function queryAPIScript(cmd, params, success_handler, error_handler) {
 }
 
 function postAPIRequest(cmd, params, success_handler, error_handler) {
-    var url = '/_/api?cmd=' + cmd;
+    var url = '/_/api/' + cmd;
     $.post(url, params, function (data) {
         if (data['status'] == 'ok') {
             success_handler(data);
@@ -44,24 +44,24 @@ function postAPIRequest(cmd, params, success_handler, error_handler) {
 var API = {
     project: {
         list: function(successHandler, errorHandler) {
-            queryAPIScript('project.list', {}, successHandler, errorHandler);
+            queryAPIScript('project/list', {}, successHandler, errorHandler);
         },
         setCurrent: function(projectPath, successHandler, errorHandler) {
-            queryAPIScript('project.setCurrent', {path:projectPath}, successHandler, errorHandler);
+            queryAPIScript('project/setCurrent', {path:projectPath}, successHandler, errorHandler);
         },
         add: function(projectPath, successHandler, errorHandler) {
-            queryAPIScript('project.add', {path:projectPath}, successHandler, errorHandler);
+            queryAPIScript('project/add', {path:projectPath}, successHandler, errorHandler);
         },
         remove: function(projectPath, successHandler, errorHandler) {
-            queryAPIScript('project.remove', {path:projectPath}, successHandler, errorHandler);
+            queryAPIScript('project/remove', {path:projectPath}, successHandler, errorHandler);
         },
-        blockPaths: function(projectPath, successHandler, errorHandler) {
-            queryAPIScript('project.blockPaths', {projectPath: projectPath}, successHandler, errorHandler);
+        muteList: function(projectPath, successHandler, errorHandler) {
+            queryAPIScript('project/muteList', {projectPath: projectPath}, successHandler, errorHandler);
         },
-        toggleBlockPath: function(projectPath, filePath, block, successHandler, errorHandler) {
-            queryAPIScript('project.toggleBlockPath', {
+        toggleMutePath: function(projectPath, filePath, block, successHandler, errorHandler) {
+            queryAPIScript('project/toggleMutePath', {
                 projectPath: projectPath,
-                blockPath: filePath,
+                mutePath: filePath,
                 action: block ? 'off' : 'on'
             }, successHandler, errorHandler);
         }
@@ -69,10 +69,10 @@ var API = {
     },
     os: {
         listDir: function(path, successHandler, errorHandler) {
-            queryAPIScript('os.listDir', {path: path}, successHandler, errorHandler);
+            queryAPIScript('os/listDir', {path: path}, successHandler, errorHandler);
         },
         writeFile: function(path, content, successHandler, errorHandler) {
-            postAPIRequest('os.writeFile', {path: path, content:content}, successHandler, errorHandler)
+            postAPIRequest('os/writeFile', {path: path, content:content}, successHandler, errorHandler)
         }
     }
 };

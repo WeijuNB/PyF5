@@ -3,7 +3,7 @@
 import socket
 import webbrowser
 from tornado import ioloop
-from pyf5.server import F5Server
+from pyf5.server import F5Server, MODE, DEVELOP_MODE
 from pyf5.utils import module_path
 
 if __name__ == '__main__':
@@ -17,8 +17,10 @@ if __name__ == '__main__':
         except socket.error:
             continue
 
-    print 'F5 server started, please visit:',  '127.0.0.1' if port == 80 else '127.0.0.1:%s' % port
-    if 'script' in __file__.lower():
+    print 'F5 server started, please visit:'
+    print '127.0.0.1' if port == 80 else '127.0.0.1:%s' % port
+
+    if MODE != DEVELOP_MODE:
         webbrowser.open_new_tab('http://127.0.0.1:%s' % port)
 
     try:

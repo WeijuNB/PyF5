@@ -1,14 +1,11 @@
 #coding:utf-8
 import base64
 import os
-import json
-import time
 from StringIO import StringIO
 from urllib import unquote
 import gc
 
-from tornado.web import StaticFileHandler, RequestHandler, asynchronous, HTTPError
-from tornado import ioloop
+from tornado.web import StaticFileHandler, RequestHandler, HTTPError
 
 from pyf5.utils import get_rel_path, we_are_frozen
 
@@ -23,19 +20,17 @@ if we_are_frozen():
 
 class MarkDownHandler(RequestHandler):
     def get(self, *args, **kwargs):
-        root_path = self.application.current_project_path()
-        code = ''
-        if root_path:
-            rel_path = self.request.path[1:]
-            rel_path = unquote(rel_path).decode('utf-8')
-            md_path = os.path.join(root_path, rel_path).replace('\\', '/')
-            code = open(md_path).read()
+        root_path = self.application.project.path
+        rel_path = self.request.path[1:]
+        rel_path = unquote(rel_path).decode('utf-8')
+        md_path = os.path.join(root_path, rel_path).replace('\\', '/')
+        code = open(md_path).read()
         print md_path
         self.render('edit.html',
                     code=code,
                     file_path=rel_path,
                     abs_path=md_path,
-                    )
+        )
 
 
 class AssetsHandler(StaticFileHandler):
@@ -99,49 +94,3 @@ class StaticSiteHandler(StaticFileHandler):
             return len(content)
         else:
             return StaticFileHandler.get_content_size(self)
-
-
-class ChangeRequestHandler(RequestHandler):
-    def initialize(self):
-        self.application.change_request_handlers.add(self)
-
-        self.callback = self.get_argument('callback', '_F5.handleChanges')
-        try:
-            self.delay = int(self.get_argument('delay', 20))
-        except (ValueError, TypeError):
-            self.delay = 20
-        try:
-            self.query_time = float(self.get_argument('ts', None))
-        except (ValueError, TypeError):
-            self.query_time = time.time()
-        self.timeout = None
-
-    @asynchronous
-    def get(self, *args, **kwargs):
-        changes = self.application.get_changes_since(self.query_time)
-        if changes:
-            self.respond_changes(changes)
-        else:
-            deadline = time.time() + self.delay
-            self.timeout = ioloop.IOLoop.instance().add_timeout(deadline, lambda: self.respond_changes([]))
-
-    def change_happened(self):
-        changes = self.application.get_changes_since(self.query_time)
-        if changes:
-            self.respond_changes(changes)
-
-    def respond_changes(self, changes):
-        self.set_header('Content-Type', "text/javascript")
-        ret = {
-            'status': 'ok',
-            'time': time.time(),
-            'changes': [change._asdict() for change in changes],
-        }
-        ret = '%s(%s);' % (self.callback, json.dumps(ret))
-        self.write(ret)
-        self.finish()
-        if self.timeout:
-            ioloop.IOLoop.instance().remove_timeout(self.timeout)
-        self.application.change_request_handlers.remove(self)
-
-

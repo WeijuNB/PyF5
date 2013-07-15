@@ -37,7 +37,7 @@ kwargs_egg = dict(
     description="Web page auto reloader for web developers.",
     # download_url="https://github.com/WeijuNB/PyF5",
 
-    install_requires = {
+    install_requires={
         "tornado": ['tornado>=3.1'],
         'watchdog': ['watchdog>=0.6'],
         },

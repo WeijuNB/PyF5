@@ -5,7 +5,8 @@ import time
 from tornado import gen, ioloop
 from tornado.httpclient import AsyncHTTPClient
 from tornado.web import RequestHandler, asynchronous, os
-from pyf5.utils import get_rel_path
+from pyf5.models import Project
+from pyf5.utils import get_rel_path, jsonable, config_path, normalize_path, path_is_parent
 
 
 PATH_NOT_EXISTS = 'PATH_NOT_EXISTS'
@@ -32,9 +33,10 @@ class APIRequestHandler(RequestHandler):
             self.set_header('Access-Control-Allow-Origin', self.request.headers.get('Origin'))
             self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
             self.set_header('Access-Control-Allow-Headers', 'Content-Type')
-        cmd_parts = self.get_argument('cmd', None).split('.')
+
+        cmd_parts = self.path_args[0].split('/')
         if len(cmd_parts) > 2:
-            return self.respond_error(INVALID_CMD, u'cmd格式不正确')
+            return self.respond_error(INVALID_CMD, u'API路径不正确')
         method = cmd_parts[-1]
         category = cmd_parts[0] if len(cmd_parts) == 2 else None
 
@@ -78,7 +80,7 @@ class APIRequestHandler(RequestHandler):
     def respond_JSONP(self, data):
         self.application.log_request(self)
         callback_name = self.get_argument('callback', None)
-        json_data = json.dumps(data)
+        json_data = json.dumps(jsonable(data))
         if callback_name:
             ret = '%s(%s);' % (callback_name, json_data)
         else:
@@ -100,14 +102,16 @@ class OSAPI(APIRequestHandler):
             return self.respond_error(PATH_NOT_EXISTS, u'目录不存在:' + path)
         if not os.path.isdir(path):
             return self.respond_error(PATH_IS_NOT_DIR, u'路径不是目录')
+        path = normalize_path(path)
+
         ret = []
         for name in os.listdir(path):
-            abs_path = os.path.join(path, name)
+            abs_path = normalize_path(os.path.join(path, name))
             _, ext = os.path.splitext(name)
             is_dir = os.path.isdir(abs_path)
             ret.append(dict(
                 name=name,
-                absolutePath=abs_path.replace('\\', '/'),
+                absolutePath=abs_path,
                 type='DIR' if is_dir else ext.replace('.', '').lower(),
             ))
         ret.sort(key=lambda item: (item['type'] != 'DIR', name))
@@ -120,27 +124,37 @@ class OSAPI(APIRequestHandler):
             return self.respond_error(INVALID_PARAMS, u'缺少path参数')
         if not os.path.exists(path):
             return self.respond_error(PATH_NOT_EXISTS, u'路径不存在:' + path)
+
+        path = normalize_path(path)
         open(path, 'w').write(content.encode('utf-8'))
         return self.respond_success()
 
 
 class ProjectAPI(APIRequestHandler):
     def setup(self):
+        self.config_path = config_path()
         self.config = self.application.config
-        self.config.setdefault('projects', [])
-        self.projects = self.config['projects']
+        self.projects = self.config.projects
 
     def save_config(self):
-        self.application.save_config()
+        self.application.config.save(self.config_path)
+
+    def get_path_argument(self, argument_name, ensure_exists=False):
+        path = self.get_argument(argument_name, '')
+        if not path:
+            self.respond_error(INVALID_PARAMS, u'缺少%s参数' % argument_name)
+            return
+
+        if ensure_exists and not os.path.exists(path):
+            self.respond_error(INVALID_PARAMS, u'路径不存在：%s' % path)
+            return
+
+        return normalize_path(path)
 
     def find(self, path):
         for project in self.projects:
-            if project['path'] == path:
+            if project.path == path:
                 return project
-
-    def get_path_argument(self, key='path'):
-        path = self.get_argument(key, '')
-        return path.replace('\\', '/')
 
     def getCurrent(self):
         for project in self.projects:
@@ -149,38 +163,36 @@ class ProjectAPI(APIRequestHandler):
         return self.respond_success({'project': None})
 
     def setCurrent(self):
-        path = self.get_path_argument()
+        path = self.get_path_argument('path', True)
         if not path:
-            return self.respond_error(INVALID_PARAMS, u'缺少path参数')
-        if not os.path.exists(path):
-            return self.respond_error(PATH_NOT_EXISTS, u'目录不存在:' + path)
+            return
 
         for project in self.projects:
-            if project.get('path') == path:
-                project['isCurrent'] = True
-                self.application.set_project(project)
+            if project.path == path:
+                project.active = True
+                self.application.load_project(project)
             else:
-                project['isCurrent'] = False
+                project.active = False
         self.save_config()
         return self.respond_success()
 
     def list(self):
         for project in self.projects:
-            project['isCurrent'] = project == self.application.project
+            project.active = project == self.application.project
         self.respond_success({'projects': self.projects})
 
     def add(self):
-        path = self.get_path_argument()
+        path = self.get_path_argument('path', True)
         if not path:
-            return self.respond_error(INVALID_PARAMS, u'缺少path参数')
-        if not os.path.exists(path):
-            return self.respond_error(PATH_NOT_EXISTS, u'路径不存在')
+            return
+        if path[-1] == '/':
+            path = path[:-1]
 
-        for project in self.config['projects']:
-            if project.get('path') == path:
+        for project in self.config.projects:
+            if project.path == path:
                 return self.respond_error(PROJECT_EXISTS, u'项目已存在')
 
-        project = {'path': path}
+        project = Project(path=path)
         self.projects.append(project)
 
         self.save_config()
@@ -189,40 +201,33 @@ class ProjectAPI(APIRequestHandler):
     def remove(self):
         path = self.get_path_argument('path')
         if not path:
-            return self.respond_error(INVALID_PARAMS, u'缺少path参数')
+            return
+
         project = self.find(path)
         if project:
             self.projects.remove(project)
         self.save_config()
         return self.list()
 
-    def blockPaths(self):
-        project_path = self.get_path_argument('projectPath')
+    def muteList(self):
+        project_path = self.get_path_argument('projectPath', True)
         if not project_path:
-            return self.respond_error(INVALID_PARAMS, u'缺少projectPath参数')
-        if not os.path.exists(project_path):
-            return self.respond_error(PATH_NOT_EXISTS, u'项目目录不存在：' + project_path)
+            return
 
         project = self.find(project_path)
         if not project:
             return self.respond_error(PROJECT_NOT_EXISTS, u'找不到项目')
-        project.setdefault('blockPaths', [])
-        paths = [os.path.join(project_path, block_path).replace('\\', '/')
-                 for block_path in project['blockPaths']]
-        return self.respond_success({'blockPaths': paths})
 
-    def toggleBlockPath(self):
-        project_path = self.get_path_argument('projectPath')
+        return self.respond_success({'muteList': project.muteList})
+
+    def toggleMutePath(self):
+        project_path = self.get_path_argument('projectPath', True)
         if not project_path:
-            return self.respond_error(INVALID_PARAMS, u'缺少projectPath参数')
-        if not os.path.exists(project_path):
-            return self.respond_error(PATH_NOT_EXISTS, u'项目目录不存在：' + project_path)
+            return
 
-        block_path = self.get_path_argument('blockPath')
-        if not block_path:
-            return self.respond_error(INVALID_PARAMS, u'缺少blockPath参数')
-        if not os.path.exists(block_path):
-            return self.respond_error(PATH_NOT_EXISTS, u'屏蔽的目录不存在：' + block_path)
+        mute_path = self.get_path_argument('mutePath', True)
+        if not mute_path:
+            return
 
         action = self.get_argument('action', '')
         if not action or action not in ['on', 'off']:
@@ -232,20 +237,16 @@ class ProjectAPI(APIRequestHandler):
         if not project:
             return self.respond_error(PROJECT_NOT_EXISTS, u'找不到项目')
 
-        rel_path = get_rel_path(block_path, project_path)
-        if '..' in rel_path:
-            return self.respond_error(INVALID_PARAMS, u'blockPath不属于ProjectPath')
+        if not path_is_parent(project_path, mute_path):
+            return self.respond_error(INVALID_PARAMS, u'mutePath不属于ProjectPath')
+        rel_path = get_rel_path(mute_path, project_path)
 
-        project_path = self.get_path_argument('projectPath')
-        block_path = self.get_path_argument('blockPath')
-        project = self.find(project_path)
-        rel_path = get_rel_path(block_path, project_path)
+        if action == 'on' and not rel_path in project.muteList:
+            project.muteList.append(rel_path)
 
-        project.setdefault('blockPaths', [])
-        if action == 'on' and not rel_path in project['blockPaths']:
-            project['blockPaths'].append(rel_path)
-        if action == 'off' and rel_path in project['blockPaths']:
-            project['blockPaths'].remove(rel_path)
+        if action == 'off' and rel_path in project.muteList:
+            project.muteList.remove(rel_path)
+
         self.save_config()
         return self.respond_success({})
 

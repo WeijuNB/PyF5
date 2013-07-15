@@ -1,196 +1,103 @@
 #coding:utf-8
 import os
-import socket
-import time
-from collections import namedtuple
 import cPickle
 
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler, \
-    EVENT_TYPE_CREATED, EVENT_TYPE_DELETED, EVENT_TYPE_MOVED
-from tornado import ioloop
 from tornado.web import Application, RedirectHandler, StaticFileHandler
+from handlers.changes import ChangeRequestHandler
+from watcher import ChangesWatcher
+from models import Config
 
-from pyf5.utils import module_path, get_rel_path, we_are_frozen, config_path
-from pyf5.handlers import ChangeRequestHandler, AssetsHandler, StaticSiteHandler, APIRequestHandler, MarkDownHandler
+from pyf5.utils import module_path, config_path, get_current_mode, FREEZE_MODE, PACKAGE_MODE, DEVELOP_MODE
+from pyf5.handlers import AssetsHandler, StaticSiteHandler, APIRequestHandler, MarkDownHandler
 
-MODE = None
-if we_are_frozen():
-    MODE = 'freezed'
-elif 'site-package' in module_path():
-    MODE = 'source'
-else:
-    MODE = 'develop'
-
-# freeze 模式下面，使用打包的Assets文件
-if MODE == 'source':
+MODE = get_current_mode()
+if MODE == FREEZE_MODE:
+    # freeze 模式下面，使用打包的Assets文件（默认）
+    pass
+elif MODE == PACKAGE_MODE:
     # 源代码发布出去以后，使用最普通的StaticFileHandler
     AssetsHandler = StaticFileHandler
-elif MODE == 'develop':
+elif MODE == DEVELOP_MODE:
     # 开发中，使用会自动更新的StaticSiteHandler
     AssetsHandler = StaticSiteHandler
 
-Change = namedtuple('Change', 'time, path, type')
-
-
-class ChangesObserver(FileSystemEventHandler):
-    def __init__(self, changes_handler=None):
-        self.observer = Observer()
-        self.changes = []
-        self.black_list = []
-        self.path = None
-        self.changes_handler = changes_handler
-        self.changes_timer = None
-        self.observer.start()
-
-    def observe(self, path, black_list=None):
-        self.path = path
-        self.black_list = black_list or []
-        self.observer.unschedule_all()
-        self.observer.schedule(self, self.path, recursive=True)
-
-    def get_changes_since(self, ts):
-        ret = []
-        for change in self.changes:
-            if change[0] > ts:
-                ret.append(change)
-        return ret
-
-    def on_any_event(self, event):
-        if event.is_directory:
-            return
-        now = time.time()
-        rel_src_path = get_rel_path(event.src_path, self.path)
-
-        if event.event_type == EVENT_TYPE_MOVED:
-            self.add_pure_change(Change(now, rel_src_path, EVENT_TYPE_DELETED))
-            rel_dest_path = get_rel_path(event.dest_path, self.path)
-            self.add_pure_change(Change(now, rel_dest_path, EVENT_TYPE_CREATED))
-        else:
-            self.add_pure_change(Change(time.time(), rel_src_path, event.event_type))
-        try:
-            ioloop.IOLoop.instance().add_callback(self.refresh_change_timer)
-        except RuntimeError:
-            print 'ioloop.add_callback failed'
-
-    def refresh_change_timer(self):
-        loop = ioloop.IOLoop.instance()
-        if self.changes_timer:
-            loop.remove_timeout(self.changes_timer)
-        self.changes_timer = loop.add_timeout(time.time() + 0.1, self.change_happened)
-
-    def change_happened(self):
-        if self.changes_handler and callable(self.changes_handler):
-            ioloop.IOLoop.instance().add_callback(self.changes_handler)
-
-    def find_related_trash_changes(self, change):
-        trash_changes = []
-        for old_change in self.changes[::-1]:
-            if old_change.path != change.path or change.time - old_change.time > 0.1:
-                continue
-
-            if change.type == EVENT_TYPE_DELETED:
-                trash_changes.append(old_change)
-                if old_change.type == EVENT_TYPE_CREATED:
-                    return trash_changes
-            elif change.type == EVENT_TYPE_CREATED:
-                trash_changes.append(old_change)
-                if old_change.type == EVENT_TYPE_DELETED:
-                    return trash_changes
-        return []
-
-    def add_pure_change(self, change):
-        for path_name in self.black_list:
-            if '..' not in os.path.relpath(change.path, path_name):
-                print '...', change
-                return
-
-        trash_changes = self.find_related_trash_changes(change)
-        if trash_changes:
-            for change in trash_changes:
-                self.changes.remove(change)
-                print '-  ', change
-        else:
-            self.changes.append(change)
-            print '+  ', change
-        self.remove_outdated_changes(30)
-
-    def remove_outdated_changes(self, seconds):
-        for change in self.changes[:]:
-            if change.time - time.time() > seconds:
-                try:
-                    self.changes.remove(change)
-                except ValueError:
-                    pass
-
 
 class F5Server(Application):
-    def __init__(self, handlers=None, default_host="", transforms=None, wsgi=False, **settings):
-        if not handlers:
-            handlers = [
-                (r"/_/api/changes", ChangeRequestHandler),
-                (r"/_/api/?(.*)", APIRequestHandler),
-                (r"/_/?(.*)", AssetsHandler, {"path": os.path.join(module_path(), '_')}),
-                (r"/", RedirectHandler, {'url': '/_/index.html'}),
-            ]
-        if not settings:
-            settings = {
-                'debug': True,
-                'template_path': os.path.join(module_path(), '_'),
-            }
-        if not default_host:
-            default_host = '.*$'
+    def __init__(self):
+        handlers = [
+            (r"/_/api/changes", ChangeRequestHandler),
+            (r"/_/api/(.*)", APIRequestHandler),
+            (r"/_/?(.*)", AssetsHandler, {"path": os.path.join(module_path(), '_')}),
+            (r"/", RedirectHandler, {'url': '/_/index.html'}),
+        ]
+        self._handlers_count = len(handlers)
+        settings = {
+            'debug': True,
+            'template_path': os.path.join(module_path(), '_'),
+        }
 
-        Application.__init__(self, handlers, default_host, transforms, wsgi, **settings)
-        self.internal_handler_count = len(handlers)
+        Application.__init__(self, handlers, ".*$", None, False, **settings)
 
-        self.change_request_handlers = set()
-        self.observer = ChangesObserver(changes_handler=self.change_happened)
+        if self.project:
+            self.load_project(self.project)
 
-        self.config_path = config_path()
-        self.config = self.load_config()
-        self.project = None
-        for project in self.config.get('projects', []):
-            if project.get('isCurrent'):
-                self.project = project
-                self.set_project(project)
-                break
+    @property
+    def watcher(self):
+        if not hasattr(self, '_watcher'):
+            self._watcher = ChangesWatcher(changes_handler=self.project_file_changed)
+        return self._watcher
 
-    def load_config(self):
-        return cPickle.load(open(self.config_path)) if os.path.exists(self.config_path) else {}
+    @property
+    def config(self):
+        if not hasattr(self, '_config'):
+            path = config_path()
+            if os.path.exists(path):
+                self._config = Config.load(path)
+            else:
+                self._config = Config()
+                self._config.path = path
+        return self._config
 
-    def save_config(self):
-        cPickle.dump(self.config, open(self.config_path, 'w+'))
+    @property
+    def project(self):
+        for project in self.config.projects:
+            if project.active:
+                return project
+        return None
 
-    def set_project(self, project):
-        self.project = project
-        path = project['path']
-        black_list = project.get('blockPaths', [])
+    def load_project(self, target_project):
+        found = False
+        for old_project in self.config.projects:
+            old_project.active = False
+            if old_project.path == target_project.path:
+                old_project.active = True
+                found = True
+
+        if not found:
+            self.config.projects.append(target_project)
+            target_project.active = True
 
         if len(self.handlers) > 1:
             self.handlers.pop(-1)
-
         self.add_handlers(".*$", [
             (r"/(.*)\.md", MarkDownHandler),
-            (r"/(.*)", StaticSiteHandler, {"path": path}),
+            (r"/(.*)", StaticSiteHandler, {"path": target_project.path}),
         ])
         handle = self.handlers.pop(0)
-        self.handlers.insert(self.internal_handler_count, handle)
-        self.observer.observe(path, black_list)
-        if MODE == 'develop':
-            self.observer.observer.schedule(self.observer, module_path(), recursive=True)
+        self.handlers.insert(self._handlers_count, handle)
+
+        self.watcher.observe(target_project.path, target_project.muteList)
+        if MODE == DEVELOP_MODE:
+            self.watcher.observer.schedule(self.watcher, module_path(), recursive=True)
 
     def current_project_path(self):
         if not self.project:
             return None
-        return self.project.get('path')
+        return self.project.path
 
-    def change_happened(self):
-        for handler in list(self.change_request_handlers):
-            handler.change_happened()
+    def project_file_changed(self):
+        ChangeRequestHandler.broadcast_changes()
 
-    def get_changes_since(self, ts):
-        return self.observer.get_changes_since(ts)
 
 if __name__ == "__main__":
     pass
