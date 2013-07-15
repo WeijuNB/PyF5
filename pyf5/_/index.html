@@ -49,21 +49,39 @@
         <div id="right-panel" class="span8" data-bind="with:currentProject">
 
             <a id="script-hint-link" class="btn btn-small pull-right"
-               data-toggle="tooltip"
-               data-placement="left"
-               style="display:none"
-               href="javascript:vm.showScriptHint()"
-               title="动态页面的嵌入代码">
+               style="visibility:hidden"
+               href="javascript:vm.showScriptHint()">
                 <i class="icon-cog"></i>
             </a>
 
+            <!-- ko if:targetHost-->
+            <a id="target-host-label" class="label label-info pull-right" href="/" target="_blank">
+                域名映射：<span data-bind="text:$root.hostText"></span>
+                <i class="icon-arrow-right icon-white"></i>
+                <span data-bind="text:targetHost"></span>
+            </a>
+            <!-- /ko -->
+
             <h3>文件列表</h3>
 
-            <div id="script-hint" class="alert alert-info" style="display:none">
+            <form id="script-hint" class="alert alert-info" data-bind="submit:$root.submitTargetHost" style="display:none">
                 <a href="javascript:vm.hideScriptHint()" class="close">&times;</a>
-                动态网站请在&lt;/body&gt;之前插入:<br/>
-                &lt;script src="http://<span id="host"></span>/_/js/reloader.js"&gt;&lt;/script&gt;
-            </div>
+                <p>
+                    如果是<b>静态</b>网站，请直接点击下方文件列表中的html文件来进行实时预览
+                </p>
+                <p>
+                    如果是<b>动态</b>网站，请设定域名和端口映射，设定完成之后，访问<span data-bind="text:$root.hostText"></span>就相当于访问映射的网站（F5会帮您加上自刷新功能）
+                    <div class="input-append">
+                        <input class="span2" type="text"
+                               placeholder="请输入想要映射的域名" data-bind="value:targetHost">
+                        <button class="btn" type="submit">保存</button>
+                        <button class="btn" type="button" data-bind="click:$root.clearTargetHost">清除</button>
+                    </div>
+                    <br>或者也可以在网页的&lt;/body&gt;之前插入下面这段代码:
+                    <br>&lt;script src="http://<span data-bind="text:$root.hostText"></span>/_/js/reloader.js"&gt;&lt;/script&gt;
+                </p>
+
+            </form>
 
             <ul class="breadcrumb">
                 <li>

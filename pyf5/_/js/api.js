@@ -49,6 +49,18 @@ var API = {
         setCurrent: function(projectPath, successHandler, errorHandler) {
             queryAPIScript('project/setCurrent', {path:projectPath}, successHandler, errorHandler);
         },
+        setTargetHost: function(projectPath, host, successHandler, errorHandler) {
+            queryAPIScript('project/setTargetHost',
+                {projectPath:projectPath, targetHost:host},
+                successHandler,
+                errorHandler);
+        },
+        setStatic: function(projectPath, successHandler, errorHandler) {
+            queryAPIScript('project/setStatic',
+                {projectPath:projectPath},
+                successHandler,
+                errorHandler);
+        },
         add: function(projectPath, successHandler, errorHandler) {
             queryAPIScript('project/add', {path:projectPath}, successHandler, errorHandler);
         },

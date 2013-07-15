@@ -4,6 +4,7 @@ import cPickle
 
 from tornado.web import Application, RedirectHandler, StaticFileHandler
 from handlers.changes import ChangeRequestHandler
+from handlers.proxy import ForwardRequestHandler
 from watcher import ChangesWatcher
 from models import Config
 
@@ -27,8 +28,8 @@ class F5Server(Application):
         handlers = [
             (r"/_/api/changes", ChangeRequestHandler),
             (r"/_/api/(.*)", APIRequestHandler),
-            (r"/_/?(.*)", AssetsHandler, {"path": os.path.join(module_path(), '_')}),
-            (r"/", RedirectHandler, {'url': '/_/index.html'}),
+            (r"/_/(.+)", AssetsHandler, {"path": os.path.join(module_path(), '_')}),
+            # (r"/", RedirectHandler, {'url': '/_/index.html'}),
         ]
         self._handlers_count = len(handlers)
         settings = {
@@ -79,10 +80,18 @@ class F5Server(Application):
 
         if len(self.handlers) > 1:
             self.handlers.pop(-1)
-        self.add_handlers(".*$", [
-            (r"/(.*)\.md", MarkDownHandler),
-            (r"/(.*)", StaticSiteHandler, {"path": target_project.path}),
-        ])
+        if target_project.targetHost:
+            self.add_handlers(".*$", [
+                (r"/_/?", RedirectHandler, {'url': '/_/index.html'}),
+                (r"/(.*)", ForwardRequestHandler),
+            ])
+            ForwardRequestHandler.forward_host = target_project.targetHost
+        else:
+            self.add_handlers(".*$", [
+                (r"/_?/?", RedirectHandler, {'url': '/_/index.html'}),
+                (r"/(.*)\.md", MarkDownHandler),
+                (r"/(.*)", StaticSiteHandler, {"path": target_project.path}),
+            ])
         handle = self.handlers.pop(0)
         self.handlers.insert(self._handlers_count, handle)
 

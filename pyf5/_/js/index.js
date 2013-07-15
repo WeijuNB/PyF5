@@ -11,11 +11,13 @@ function ProjectModel(data) {
     self.path = ko.observable("");
     self.active = ko.observable(false);
     self.muteList = ko.observableArray([]);
+    self.targetHost = ko.observable('');
 
     self.load = function (data) {
         self.path(data.path);
         self.active(data && data.active ? data.active : false);
-        self.muteList(data && data.muteList ? data.muteList : [])
+        self.muteList(data && data.muteList ? data.muteList : []);
+        self.targetHost(data && data.targetHost ? data.targetHost : '');
     };
 
     if (data) {
@@ -65,6 +67,8 @@ function FolderSegment(name, path) {
 
 function ViewModel() {
     var self = this;
+
+    self.hostText = ko.observable(!location.port || location.port == 80 ? '127.0.0.1' : ('127.0.0.1:' + location.port));
 
     self.projects = ko.observableArray([]);
 
@@ -137,7 +141,7 @@ function ViewModel() {
         API.project.setCurrent(project.path(), function (data) {
             self.currentProject(project);
             self.queryFileList(project.path());
-            self.querymuteList();
+            self.queryMuteList();
 
             $('#projects .op a').tooltip();
             $('#script-hint-link').tooltip();
@@ -165,10 +169,8 @@ function ViewModel() {
     self.addProjectWithPath = function (path) {
         var $input = $("#new-path-input");
         var $btn = $('#project-add-btn');
-        API.project.add(path, function (data) {
-            $(data['projects']).each(function (i, obj) {
-                self.updateProject(obj);
-            });
+        API.project.add(path, function (resp) {
+            self.updateProject(resp.project);
             $input.attr('disabled', false).val('');
             $btn.attr('disabled', false);
         }, function (data) {
@@ -188,6 +190,19 @@ function ViewModel() {
             alert('请输入路径');
         }
         return false;
+    };
+
+    self.submitTargetHost = function (item, event) {
+        API.project.setTargetHost(self.currentProject().path(), self.currentProject().targetHost(), function (resp) {
+            console.log(resp);
+        });
+    };
+
+    self.clearTargetHost = function (item, event) {
+        self.currentProject().targetHost('');
+        API.project.setTargetHost(self.currentProject().path(), "", function (resp) {
+            console.log(resp);
+        });
     };
 
     // ================================= Files
@@ -275,19 +290,16 @@ function ViewModel() {
 
     // =================================== misc
     self.showScriptHint = function() {
-        $('#script-hint-link').hide();
+        $('#script-hint-link').css('visibility', 'hidden');
         $('#script-hint').show();
         $.cookie('show-script-hint', true);
-        $('#host').text(
-            !location.port || location.port == 80 ? '127.0.0.1' : ('127.0.0.1:' + location.port)
-        );
     };
 
     self.hideScriptHint = function() {
-        $('#script-hint-link').show();
+        $('#script-hint-link').css('visibility', 'visible');
         $('#script-hint').hide();
         $.cookie('show-script-hint', false);
-    }
+    };
 }
 
 var vm = new ViewModel();

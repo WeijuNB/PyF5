@@ -176,6 +176,22 @@ class ProjectAPI(APIRequestHandler):
         self.save_config()
         return self.respond_success()
 
+    def setTargetHost(self):
+        path = self.get_path_argument('projectPath', True)
+        if not path:
+            return
+
+        target_host = self.get_argument('targetHost', '').strip()
+
+        current_project = self.application.project
+        if not current_project or current_project.path != path:
+            return self.respond_error(INVALID_PARAMS, 'path不属于当前project')
+
+        current_project.targetHost = target_host
+        self.save_config()
+        self.application.load_project(current_project)
+        self.respond_success()
+
     def list(self):
         for project in self.projects:
             project.active = project == self.application.project
@@ -185,6 +201,7 @@ class ProjectAPI(APIRequestHandler):
         path = self.get_path_argument('path', True)
         if not path:
             return
+
         if path[-1] == '/':
             path = path[:-1]
 
@@ -196,7 +213,7 @@ class ProjectAPI(APIRequestHandler):
         self.projects.append(project)
 
         self.save_config()
-        return self.list()
+        self.respond_success({'project': project})
 
     def remove(self):
         path = self.get_path_argument('path')

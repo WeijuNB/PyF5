@@ -43,6 +43,7 @@ class Project(BaseModel):
     path = StringType(required=True)
     active = BooleanType(default=False)
     muteList = ListType(StringType(), default=[])
+    targetHost = StringType()
 
 
 class Config(BaseModel):

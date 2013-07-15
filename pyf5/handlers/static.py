@@ -29,8 +29,8 @@ class MarkDownHandler(RequestHandler):
         self.render('edit.html',
                     code=code,
                     file_path=rel_path,
-                    abs_path=md_path,
-        )
+                    abs_path=md_path
+                    )
 
 
 class AssetsHandler(StaticFileHandler):
