@@ -72,8 +72,8 @@
                 <p>
                     如果是<b>动态</b>网站，请设定域名和端口映射，设定完成之后，访问<span data-bind="text:$root.hostText"></span>就相当于访问映射的网站（F5会帮您加上自刷新功能）
                     <div class="input-append">
-                        <input class="span2" type="text"
-                               placeholder="请输入想要映射的域名" data-bind="value:targetHost">
+                        <input class="span3" type="text" id="target-host-input"
+                               placeholder="请输入指向的域名或ip地址" data-bind="attr:{value:targetHost}">
                         <button class="btn" type="submit">保存</button>
                         <button class="btn" type="button" data-bind="click:$root.clearTargetHost">清除</button>
                     </div>

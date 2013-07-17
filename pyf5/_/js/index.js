@@ -193,13 +193,21 @@ function ViewModel() {
     };
 
     self.submitTargetHost = function (item, event) {
-        API.project.setTargetHost(self.currentProject().path(), self.currentProject().targetHost(), function (resp) {
-            console.log(resp);
-        });
+        var targetHost = $.trim($('#target-host-input').val());
+
+        if (/^[\w\.]+$/.exec(targetHost)){
+            API.project.setTargetHost(self.currentProject().path(), targetHost, function (resp) {
+                self.currentProject().targetHost(targetHost);
+            });
+        } else {
+            alert('请输入域名或ip地址（不带协议和路径）');
+            $('#target-host-input').val(targetHost).focus().select();
+        }
     };
 
     self.clearTargetHost = function (item, event) {
-        self.currentProject().targetHost('');
+        self.currentProject().targetHost('');  // 这里很诡异，不能将input的内容清空
+        $('#target-host-input').val('');
         API.project.setTargetHost(self.currentProject().path(), "", function (resp) {
             console.log(resp);
         });
