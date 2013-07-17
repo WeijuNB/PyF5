@@ -49,8 +49,10 @@
         <div id="right-panel" class="span8" data-bind="with:currentProject">
 
             <a id="script-hint-link" class="btn btn-small pull-right"
-               style="visibility:hidden"
-               href="javascript:vm.showScriptHint()">
+               data-toggle="tooltip" title="设置域名映射" data-placement="left"
+               href="javascript:"
+               data-bind="style:{visibility: $root.showSettings() ? 'hidden' : 'visible'},
+               click: function(data, event) { $root.showSettings(true); }">
                 <i class="icon-cog"></i>
             </a>
 
@@ -64,8 +66,9 @@
 
             <h3>文件列表</h3>
 
-            <form id="script-hint" class="alert alert-info" data-bind="submit:$root.submitTargetHost" style="display:none">
-                <a href="javascript:vm.hideScriptHint()" class="close">&times;</a>
+            <form id="script-hint" class="alert alert-info" style="display:none"
+                  data-bind="submit:$root.submitTargetHost, style:{display: $root.showSettings() ? 'block' : 'none'}">
+                <a href="javascript:" class="close" data-bind="click: function(data,event){ $root.showSettings(false); }">&times;</a>
                 <p>
                     如果是<b>静态</b>网站，请直接点击下方文件列表中的html文件来进行实时预览
                 </p>
@@ -73,7 +76,7 @@
                     如果是<b>动态</b>网站，请设定域名和端口映射，设定完成之后，访问<span data-bind="text:$root.hostText"></span>就相当于访问映射的网站（F5会帮您加上自刷新功能）
                     <div class="input-append">
                         <input class="span3" type="text" id="target-host-input"
-                               placeholder="请输入指向的域名或ip地址" data-bind="attr:{value:targetHost}">
+                               placeholder="somedomain.com:8080" data-bind="attr:{value:targetHost}">
                         <button class="btn" type="submit">保存</button>
                         <button class="btn" type="button" data-bind="click:$root.clearTargetHost">清除</button>
                     </div>

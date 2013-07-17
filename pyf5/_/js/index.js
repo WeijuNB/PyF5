@@ -69,8 +69,17 @@ function ViewModel() {
     var self = this;
 
     self.hostText = ko.observable(!location.port || location.port == 80 ? '127.0.0.1' : ('127.0.0.1:' + location.port));
+    self.showSettings = ko.observable(!$.cookie('hideSettings'));
+    self.showSettings.subscribe(function (newValue) {
+        $.cookie('hideSettings', newValue);
+    });
 
     self.projects = ko.observableArray([]);
+    self.projects.subscribe(function (newValue) {
+        setTimeout(function () {
+            $('#projects .op a').tooltip();
+        }, 500);
+    });
 
     self.currentProject = ko.computed({
         read: function () {
@@ -78,7 +87,7 @@ function ViewModel() {
             for (var i = 0; i < self.projects().length; i += 1) {
                 project = self.projects()[i];
                 if (project.active()) {
-                    return project
+                    return project;
                 }
             }
             return null;
@@ -99,8 +108,12 @@ function ViewModel() {
         owner: self
     });
     self.currentProject.subscribe(function (newValue) {
-
+        console.log('newValue');
+        setTimeout(function () {
+            $('#script-hint-link').tooltip();
+        }, 1000)
     });
+
 
     self.folderSegments = ko.observableArray([]);
     self.files = ko.observableArray([]);
@@ -142,15 +155,6 @@ function ViewModel() {
             self.currentProject(project);
             self.queryFileList(project.path());
             self.queryMuteList();
-
-            $('#projects .op a').tooltip();
-            $('#script-hint-link').tooltip();
-            if ($.cookie('show-script-hint') != 'false') {
-                self.showScriptHint();
-            } else {
-                self.hideScriptHint();
-            }
-            self.folderSegments.removeAll();
         })
     };
 
@@ -171,6 +175,9 @@ function ViewModel() {
         var $btn = $('#project-add-btn');
         API.project.add(path, function (resp) {
             self.updateProject(resp.project);
+            if (self.projects().length == 1 && !self.currentProject()) {
+                self.selectProject(self.projects()[0]);
+            }
             $input.attr('disabled', false).val('');
             $btn.attr('disabled', false);
         }, function (data) {
@@ -195,12 +202,12 @@ function ViewModel() {
     self.submitTargetHost = function (item, event) {
         var targetHost = $.trim($('#target-host-input').val());
 
-        if (/^[\w\.]+$/.exec(targetHost)){
+        if (/^[\w\.:]+$/.exec(targetHost)){
             API.project.setTargetHost(self.currentProject().path(), targetHost, function (resp) {
                 self.currentProject().targetHost(targetHost);
             });
         } else {
-            alert('请输入域名或ip地址（不带协议和路径）');
+            alert('请输入域名或ip地址（不带协议和路径）和端口，如：\n127.0.0.1:8080\n192.168.0.101\ndomain.com:8080\nmysite.com');
             $('#target-host-input').val(targetHost).focus().select();
         }
     };
@@ -223,6 +230,7 @@ function ViewModel() {
                 var file = new FileModel(obj, self.currentProject());
                 self.files.push(file);
             });
+            $('#file-list td.op a').tooltip();
         });
     };
 
@@ -294,19 +302,6 @@ function ViewModel() {
         API.project.toggleMutePath(self.currentProject().path(), file.absolutePath(), file.isMute(), function (data) {
             self.queryMuteList();
         });
-    };
-
-    // =================================== misc
-    self.showScriptHint = function() {
-        $('#script-hint-link').css('visibility', 'hidden');
-        $('#script-hint').show();
-        $.cookie('show-script-hint', true);
-    };
-
-    self.hideScriptHint = function() {
-        $('#script-hint-link').css('visibility', 'visible');
-        $('#script-hint').hide();
-        $.cookie('show-script-hint', false);
     };
 }
 
