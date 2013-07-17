@@ -8,14 +8,14 @@ except ImportError:
     pass
 
 kwargs_py2exe = dict(
-    console=['pyf5/f5.py'],
+    console=['f5.py'],
     options={
         'py2exe': {
             'bundle_files': 1,
             'excludes': [
                 'pyreadline', 'difflib', 'doctest', 'optparse',
                 'pickle', 'pdb', 'unittest',
-                ],
+            ],
             'compressed': True,
             'dll_excludes': ['msvcr71.dll'],
             }

@@ -18,10 +18,10 @@ if __name__ == '__main__':
             continue
 
     print 'F5 server started, please visit:'
-    print '127.0.0.1' if port == 80 else '127.0.0.1:%s' % port
+    print 'http://127.0.0.1/_' if port == 80 else 'http://127.0.0.1:%s/_' % port
 
     if MODE != DEVELOP_MODE:
-        webbrowser.open_new_tab('http://127.0.0.1:%s' % port)
+        webbrowser.open_new_tab('http://127.0.0.1:%s/_' % port)
 
     try:
         ioloop.IOLoop.instance().start()

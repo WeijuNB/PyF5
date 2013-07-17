@@ -29,6 +29,7 @@ class F5Server(Application):
             (r"/_/api/changes", ChangeRequestHandler),
             (r"/_/api/(.*)", APIRequestHandler),
             (r"/_/(.+)", AssetsHandler, {"path": os.path.join(module_path(), '_')}),
+            (r"/_/?", RedirectHandler, {'url': '/_/index.html'}),
             # (r"/", RedirectHandler, {'url': '/_/index.html'}),
         ]
         self._handlers_count = len(handlers)
@@ -82,13 +83,12 @@ class F5Server(Application):
             self.handlers.pop(-1)
         if target_project.targetHost:
             self.add_handlers(".*$", [
-                (r"/_/?", RedirectHandler, {'url': '/_/index.html'}),
                 (r"/(.*)", ForwardRequestHandler),
             ])
             ForwardRequestHandler.forward_host = target_project.targetHost
         else:
             self.add_handlers(".*$", [
-                (r"/_?/?", RedirectHandler, {'url': '/_/index.html'}),
+                (r"/", RedirectHandler, {'url': '/_/index.html'}),
                 (r"/(.*)\.md", MarkDownHandler),
                 (r"/(.*)", StaticSiteHandler, {"path": target_project.path}),
             ])
