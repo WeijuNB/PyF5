@@ -14,7 +14,24 @@
 </head>
 <body>
 
-<div class="container">
+<div class="navbar navbar-fixed-top">
+    <div class="navbar-inner">
+        <div class="container">
+            <a href="/_" class="brand">F5</a>
+
+            <ul class="nav pull-right">
+                <li id="hosts">
+                    <span>本机IP：</span>
+                    <select  data-bind="foreach: $root.localHosts">
+                        <option data-bind="text:$data"></option>
+                    </select>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="body" class="container">
     <div class="row">
 
         <div class="span4">
@@ -56,9 +73,9 @@
                 <i class="icon-cog"></i>
             </a>
 
-            <!-- ko if:targetHost-->
-            <a id="target-host-label" class="label label-info pull-right" href="/" target="_blank">
-                域名映射：<span data-bind="text:$root.hostText"></span>
+            <!-- ko if: targetHost -->
+            <a id="target-host" class="label label-info pull-right" href="/" target="_blank">
+                <span>映射到</span>
                 <i class="icon-arrow-right icon-white"></i>
                 <span data-bind="text:targetHost"></span>
             </a>

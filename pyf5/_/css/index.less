@@ -8,6 +8,16 @@ body{
   overflow-y:scroll;
 }
 
+#body{
+  padding-top: 40px;
+}
+
+.navbar {
+  .container {
+    text-align: center;
+  }
+}
+
 h3 {
   font-family: "microsoft yahei";
   color:  #444;
@@ -87,15 +97,33 @@ h3 {
   }
 }
 
-#target-host-label {
+#hosts {
+  float:right;
+  padding-top: 5px;
+
+  span {
+    float:left;
+    font-size: 12px;
+    margin-top: 5px;
+  }
+
+  select {
+    margin: 0px;
+    width: 150px;
+  }
+}
+
+#target-host {
   font-weight: normal;
-  margin-top: 25px;
+  margin-top: 21px;
   margin-right: 10px;
+  padding: 5px 10px;
 }
 
 #script-hint-link{
   margin-top: 20px;
 }
+
 #script-hint{
   font-size: 12px;
   margin-bottom: 10px;

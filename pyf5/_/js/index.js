@@ -69,6 +69,7 @@ function ViewModel() {
     var self = this;
 
     self.hostText = ko.observable(!location.port || location.port == 80 ? '127.0.0.1' : ('127.0.0.1:' + location.port));
+    self.localHosts = ko.observable(['127.0.0.1']);
     self.showSettings = ko.observable(!$.cookie('hideSettings'));
     self.showSettings.subscribe(function (newValue) {
         $.cookie('hideSettings', newValue);
@@ -108,7 +109,6 @@ function ViewModel() {
         owner: self
     });
     self.currentProject.subscribe(function (newValue) {
-        console.log('newValue');
         setTimeout(function () {
             $('#script-hint-link').tooltip();
         }, 1000)
@@ -303,6 +303,13 @@ function ViewModel() {
             self.queryMuteList();
         });
     };
+
+    // ========================== mutePath
+    self.queryLocalHosts = function () {
+        API.os.localHosts(function (resp) {
+            self.localHosts(resp.hosts);
+        });
+    }
 }
 
 var vm = new ViewModel();
@@ -310,4 +317,5 @@ ko.applyBindings(vm);
 
 $(function () {
     vm.queryProjects();
+    vm.queryLocalHosts();
 });

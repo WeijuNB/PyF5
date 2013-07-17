@@ -85,6 +85,9 @@ var API = {
         },
         writeFile: function(path, content, successHandler, errorHandler) {
             postAPIRequest('os/writeFile', {path: path, content:content}, successHandler, errorHandler)
+        },
+        localHosts: function(successHandler, errorHandler) {
+            queryAPIScript('os/localHosts', {}, successHandler, errorHandler);
         }
     }
 };

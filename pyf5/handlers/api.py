@@ -1,6 +1,7 @@
 #coding:utf-8
 from functools import partial
 import json
+import socket
 import time
 from tornado import gen, ioloop
 from tornado.httpclient import AsyncHTTPClient
@@ -128,6 +129,12 @@ class OSAPI(APIRequestHandler):
         path = normalize_path(path)
         open(path, 'w').write(content.encode('utf-8'))
         return self.respond_success()
+
+    def localHosts(self):
+        result = socket.gethostbyname_ex(socket.gethostname())
+        result = result[-1]
+        result.insert(0, '127.0.0.1')
+        return self.respond_success({'hosts': result})
 
 
 class ProjectAPI(APIRequestHandler):
