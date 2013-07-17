@@ -151,7 +151,7 @@
         function() {console.log.apply(console, arguments)} :
         function() {};
 
-    var $ = jQuery.noConflict(),
+    var $ = jQuery.noConflict(true),
         self = this,
         f5RootUrl = getF5RootUrl(),
         retryCount = 0,
@@ -183,6 +183,7 @@
                 return 'http://' + (authority ? authority : location.host) + '/_/';
             }
         }
+        return null;
     }
 
     function findLINKs(path) {
@@ -238,34 +239,24 @@
     }
 
 
-    function restoreScrollPosition()
-    {
+    function restoreScrollPosition() {
         var y = cookie('__F5ScrollY');
-        cookie('__F5ScrollY', null);
         if (!y) return;
 
-        if (window.pageYOffset != null)
-            window.pageYOffset = y;
-        if (document.documentElement.scrollTop != null)
-            document.documentElement.scrollTop = y;
-        if (document.body.scrollTop != null)
-            document.body.scrollTop = y
+        cookie('__F5ScrollY', null);
+        $(window).scrollTop(y);
     }
 
     function refresh() {
-        var y = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-        cookie('__F5ScrollY', y);
-        setTimeout(function() {
-            location.reload();
-        }, 200); //刷新太快的话，有些动态网页显示的还是未更新前的页面
+        cookie('__F5ScrollY', $(window).scrollTop());
+        location.reload();
     }
 
 
     function queryChanges() {
         var ts = cookie('_F5TS') ? cookie('_F5TS') : time(),
-            url = f5RootUrl + 'api/changes?callback=_F5.handleChanges&ts=' + ts;
+            url = f5RootUrl + 'api/changes?callback=_F5.handleChanges&ts=' + ts + '&delay=' + pullDelay;
 
-        url += '&delay=' + pullDelay;
         pullDelay += 2;
         if (pullDelay > 20) {
             pullDelay = 20;
@@ -276,7 +267,6 @@
                 if (retryCount >= MAX_RETRY) {
                     alert('和服务器失去联系，停止自动刷新');
                 } else {
-                    trace('');
                     retryCount += 1;
                     queryChanges();
                 }
@@ -311,16 +301,15 @@
     }
 
     function checkAliveAndRefresh() {
-        var api_url = f5RootUrl + 'api' +
-            '?cmd=url.checkAlive' +
-            '&url=' + encodeURIComponent(location.href) +
+        var api_url = f5RootUrl + 'api/url/checkAlive' +
+            '?url=' + encodeURIComponent(location.href) +
             '&callback=_F5.refresh';
         setTimeout(function () {
             $.getScript(api_url)
                 .fail(function() {
                     refresh();
                 });
-        }, 100); // 有可能autoload的服务器也需要时间去监测更新
+        }, 200);  // 有可能autoreload的服务器端也需要时间去监测更新，所以这里延迟一下
     }
 
     $(function () {

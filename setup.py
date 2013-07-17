@@ -40,6 +40,7 @@ kwargs_egg = dict(
     install_requires={
         "tornado": ['tornado>=3.1'],
         'watchdog': ['watchdog>=0.6'],
+        'schematics': ['schematics>=0.6'],
         },
     scripts=['f5.py']
 )
