@@ -26,7 +26,6 @@ function EditorViewModel(absolutePath) {
         theme: 'default',
         onChange: function(e) {
             self.currentContent(e.getValue());
-            console.log(e);
         }
     });
     self.editor.focus();

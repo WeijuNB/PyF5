@@ -44,6 +44,8 @@ class Project(BaseModel):
     active = BooleanType(default=False)
     muteList = ListType(StringType(), default=[])
     targetHost = StringType()
+    domains = ListType(StringType(), default=[])
+    activeDomain = StringType()
 
 
 class Config(BaseModel):
@@ -51,7 +53,7 @@ class Config(BaseModel):
 
     @classmethod
     def load(cls, path):
-        config_data = cPickle.load(open(config_path()))
+        config_data = cPickle.load(open(path))
         config = Config(**config_data)
         return config
 

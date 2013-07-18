@@ -7,8 +7,11 @@
     <link href="/_/css/bootstrap-responsive.min.css" rel="stylesheet">
     <link href="/_/css/index.less" type="text/css" rel="stylesheet/less">
     <script src="/_/js/libs/less.js"></script>
+
+    <script src="/_/js/libs/json2.js"></script>
     <script src="/_/js/libs/jquery-1.8.2.min.js"></script>
     <script src="/_/js/libs/jquery.cookie.js"></script>
+    <script src="/_/js/libs/jquery.qrcode.min.js"></script>
     <script src="/_/js/libs/knockout-2.2.1.js"></script>
     <script src="/_/js/libs/bootstrap.min.js"></script>
 </head>
@@ -18,15 +21,6 @@
     <div class="navbar-inner">
         <div class="container">
             <a href="/_" class="brand">F5</a>
-
-            <ul class="nav pull-right">
-                <li id="hosts">
-                    <span>本机IP：</span>
-                    <select  data-bind="foreach: $root.localHosts">
-                        <option data-bind="text:$data"></option>
-                    </select>
-                </li>
-            </ul>
         </div>
     </div>
 </div>
@@ -47,7 +41,7 @@
 
             <table id="projects" class="table table-hover">
                 <tbody data-bind="foreach:projects">
-                    <tr class="project" data-bind="css:{selected: $parent.currentProject() == $data}">
+                    <tr class="project" data-bind="css:{selected: $parent.activeProject() == $data}">
                         <td class="path">
                             <a href="javascript:" data-bind="text:path, click:$parent.selectProject"></a>
                         </td>
@@ -60,31 +54,31 @@
                     </tr>
                 </tbody>
             </table>
-
         </div>
 
-        <div id="right-panel" class="span8" data-bind="with:currentProject">
-
-            <a id="script-hint-link" class="btn btn-small pull-right"
-               data-toggle="tooltip" title="设置域名映射" data-placement="left"
-               href="javascript:"
-               data-bind="style:{visibility: $root.showSettings() ? 'hidden' : 'visible'},
-               click: function(data, event) { $root.showSettings(true); }">
-                <i class="icon-cog"></i>
-            </a>
+        <div id="project" class="span8" data-bind="with:activeProject">
 
             <!-- ko if: targetHost -->
-            <a id="target-host" class="label label-info pull-right" href="/" target="_blank">
+            <a id="target-host" class="label label-info" href="/" target="_blank">
                 <span>映射到</span>
                 <i class="icon-arrow-right icon-white"></i>
                 <span data-bind="text:targetHost"></span>
             </a>
             <!-- /ko -->
 
-            <h3>文件列表</h3>
+            <a id="script-hint-link" class="btn btn-small pull-right"
+               data-toggle="tooltip" title="设置域名映射" data-placement="left"
+               href="javascript:"
+               data-bind="style: {visibility: $root.showSettings() ? 'hidden' : 'visible'},
+               click: function(data, event) { $root.showSettings(true); }">
+                <i class="icon-cog"></i>
+            </a>
+
+            <div class="hr clearfix"></div>
 
             <form id="script-hint" class="alert alert-info" style="display:none"
-                  data-bind="submit:$root.submitTargetHost, style:{display: $root.showSettings() ? 'block' : 'none'}">
+                  data-bind="submit:$root.submitTargetHost,
+                  style:{display: $root.showSettings() ? 'block' : 'none'}">
                 <a href="javascript:" class="close" data-bind="click: function(data,event){ $root.showSettings(false); }">&times;</a>
                 <p>
                     如果是<b>静态</b>网站，请直接点击下方文件列表中的html文件来进行实时预览
@@ -106,30 +100,38 @@
             <ul class="breadcrumb">
                 <li>
                     <a href="javascript:"
-                       data-bind="text:path, click:$root.clickFolderSegment"></a>
+                       data-bind="text:path, click:function() { $root.currentFolder('') }"></a>
                 </li>
                 <!-- ko foreach: $root.folderSegments -->
                 <li>
                     <span class="divider">/</span>
                     <a href="javascript:"
-                       data-bind="text: $data.name(), click:$root.clickFolderSegment"></a>
+                       data-bind="text: $data.name, click:$root.clickFolderSegment"></a>
                 </li>
                 <!-- /ko -->
             </ul>
 
             <table id="file-list" class="table table-hover">
                 <tbody data-bind="foreach:$root.files">
-                    <tr data-bind="css:{mute:isMute}">
+                    <tr data-bind="css:{mute:isMuted}">
                         <td class="file">
                             <a href="javascript:" class="icon" target="_blank"
                                data-bind="text:name, css:type, click:$root.clickFile, attr:{href:url}"></a>
                         </td>
-                        <td class="span1 op">
-                            <a href="javascript:" class="op mute" data-toggle="tooltip" title="停止监听更新"
+
+                        <td class="span2 op">
+                            <a href="javascript:" class="qrcode"
+                               data-toggle="tooltip" title="URL+二维码"
+                               data-bind="click: $root.showQRCode">
+                                <i class="icon-qrcode"></i>
+                            </a>
+                            <a href="javascript:" class="mute"
+                               data-toggle="tooltip" title="不监听更新"
                                data-bind="click:$root.toggleMute">
                                 <i class="icon-ban-circle"></i>
                             </a>
-                            <a href="javascript:" class="op unmute" data-toggle="tooltip" title="恢复监听更新"
+                            <a href="javascript:" class="unmute"
+                               data-toggle="tooltip" title="监听更新"
                                data-bind="click:$root.toggleMute">
                                 <i class="icon-ok-circle"></i>
                             </a>
@@ -138,6 +140,44 @@
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<div id="qrcode-modal" class="modal hide">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3>二维码URL</h3>
+    </div>
+    <div class="modal-body">
+
+        <div id="hosts" data-bind="with:activeProject">
+            <span>域名：</span>
+            <select data-bind="options: allHosts, selectedOptions: activeDomains, event:{change: $root.hostChange}">
+            </select>
+
+            <div class="btn-group ">
+                <a href="javascript:" class="btn btn-small btn-success" data-bind="click:clickAddDomain">
+                    <i class="icon-plus icon-white"></i>
+                </a>
+
+                <!-- ko if: domains.indexOf(activeDomain()) > -1 -->
+                <a href="#" class="btn btn-small" data-bind="click:clickRemoveDomain">
+                    <i class="icon-minus"></i>
+                </a>
+                <!-- /ko -->
+            </div>
+        </div>
+
+        <!-- ko with: QRCodeFile -->
+        <input name="url" class="input-block-level" type="text"
+               data-bind="value:url, event:{keyup: $root.QRUrlChange, change: $root.QRUrlChange}">
+        <!-- /ko -->
+
+        <div id="qrcode"></div>
+    </div>
+
+    <div class="modal-footer">
+        <a href="javascript:" data-dismiss="modal" class="btn">关闭</a>
     </div>
 </div>
 

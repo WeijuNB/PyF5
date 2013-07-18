@@ -133,7 +133,8 @@ class OSAPI(APIRequestHandler):
     def localHosts(self):
         result = socket.gethostbyname_ex(socket.gethostname())
         result = result[-1]
-        result.insert(0, '127.0.0.1')
+        if '127.0.0.1' not in result:
+            result.insert(0, '127.0.0.1')
         return self.respond_success({'hosts': result})
 
 
@@ -143,10 +144,10 @@ class ProjectAPI(APIRequestHandler):
         self.config = self.application.config
         self.projects = self.config.projects
 
-    def save_config(self):
+    def _save_config(self):
         self.application.config.save(self.config_path)
 
-    def get_path_argument(self, argument_name, ensure_exists=False):
+    def _get_path_argument(self, argument_name, ensure_exists=False):
         path = self.get_argument(argument_name, '')
         if not path:
             self.respond_error(INVALID_PARAMS, u'缺少%s参数' % argument_name)
@@ -158,46 +159,10 @@ class ProjectAPI(APIRequestHandler):
 
         return normalize_path(path)
 
-    def find(self, path):
+    def _find(self, path):
         for project in self.projects:
             if project.path == path:
                 return project
-
-    def getCurrent(self):
-        for project in self.projects:
-            if project == self.application.project:
-                return self.respond_success({'project': project})
-        return self.respond_success({'project': None})
-
-    def setCurrent(self):
-        path = self.get_path_argument('path', True)
-        if not path:
-            return
-
-        for project in self.projects:
-            if project.path == path:
-                project.active = True
-                self.application.load_project(project)
-            else:
-                project.active = False
-        self.save_config()
-        return self.respond_success()
-
-    def setTargetHost(self):
-        path = self.get_path_argument('projectPath', True)
-        if not path:
-            return
-
-        target_host = self.get_argument('targetHost', '').strip()
-
-        current_project = self.application.project
-        if not current_project or current_project.path != path:
-            return self.respond_error(INVALID_PARAMS, 'path不属于当前project')
-
-        current_project.targetHost = target_host
-        self.save_config()
-        self.application.load_project(current_project)
-        self.respond_success()
 
     def list(self):
         for project in self.projects:
@@ -205,74 +170,56 @@ class ProjectAPI(APIRequestHandler):
         self.respond_success({'projects': self.projects})
 
     def add(self):
-        path = self.get_path_argument('path', True)
+        path = self._get_path_argument('path', True)
         if not path:
             return
 
         if path[-1] == '/':
             path = path[:-1]
 
-        for project in self.config.projects:
-            if project.path == path:
-                return self.respond_error(PROJECT_EXISTS, u'项目已存在')
+        if self._find(path):
+            return self.respond_error(PROJECT_EXISTS, u'项目已存在')
 
         project = Project(path=path)
         self.projects.append(project)
 
-        self.save_config()
+        self._save_config()
         self.respond_success({'project': project})
 
+    def update(self):
+        project = self.get_argument('project', None)
+        try:
+            data = json.loads(project)
+            project = Project(**data)
+        except Exception:
+            return self.respond_error(INVALID_PARAMS, u'project参数不正确')
+
+        found_index = -1
+        for i, p in enumerate(self.projects):
+            if p.path == project.path:
+                found_index = i
+        if found_index == -1:
+            return self.respond_error(PROJECT_NOT_EXISTS, u'项目不存在')
+
+        self.projects[found_index] = project
+        if project.active:
+            for p in self.projects:
+                if p != project:
+                    p.active = False
+
+        self._save_config()
+        return self.respond_success()
+
     def remove(self):
-        path = self.get_path_argument('path')
+        path = self._get_path_argument('path')
         if not path:
             return
 
-        project = self.find(path)
+        project = self._find(path)
         if project:
             self.projects.remove(project)
-        self.save_config()
+        self._save_config()
         return self.list()
-
-    def muteList(self):
-        project_path = self.get_path_argument('projectPath', True)
-        if not project_path:
-            return
-
-        project = self.find(project_path)
-        if not project:
-            return self.respond_error(PROJECT_NOT_EXISTS, u'找不到项目')
-
-        return self.respond_success({'muteList': project.muteList})
-
-    def toggleMutePath(self):
-        project_path = self.get_path_argument('projectPath', True)
-        if not project_path:
-            return
-
-        mute_path = self.get_path_argument('mutePath', True)
-        if not mute_path:
-            return
-
-        action = self.get_argument('action', '')
-        if not action or action not in ['on', 'off']:
-            return self.respond_error(INVALID_PARAMS, u'缺少action参数或参数值不正确')
-
-        project = self.find(project_path)
-        if not project:
-            return self.respond_error(PROJECT_NOT_EXISTS, u'找不到项目')
-
-        if not path_is_parent(project_path, mute_path):
-            return self.respond_error(INVALID_PARAMS, u'mutePath不属于ProjectPath')
-        rel_path = get_rel_path(mute_path, project_path)
-
-        if action == 'on' and not rel_path in project.muteList:
-            project.muteList.append(rel_path)
-
-        if action == 'off' and rel_path in project.muteList:
-            project.muteList.remove(rel_path)
-
-        self.save_config()
-        return self.respond_success({})
 
 
 class UrlAPI(APIRequestHandler):

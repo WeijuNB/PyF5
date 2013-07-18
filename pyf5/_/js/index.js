@@ -4,25 +4,88 @@ function joinPath(p1, p2) {
     return path;
 }
 
-
-function ProjectModel(data) {
+function ProjectModel(data, root) {
     var self = this;
+
+    self.root = root;
 
     self.path = ko.observable("");
     self.active = ko.observable(false);
     self.muteList = ko.observableArray([]);
     self.targetHost = ko.observable('');
+    self.domains = ko.observableArray([]);
+    self.activeDomain = ko.observableArray('');
+
+    // 试了无数的其他方法，最后只能用这种官方的方法（options + selectedOptions）来实现了
+    self.activeDomains = ko.observableArray([]);
+    self.activeDomains.subscribe(function (newValue) {
+        self.activeDomain(newValue[0]);
+        self.save();
+        self.root.QRCodeFile(self.root.QRCodeFile()); // todo: so ugly, refactor this
+    });
+    self.allHosts = ko.computed(function () {
+        return self.domains().concat(root.localHosts());
+    });
 
     self.load = function (data) {
         self.path(data.path);
         self.active(data && data.active ? data.active : false);
         self.muteList(data && data.muteList ? data.muteList : []);
         self.targetHost(data && data.targetHost ? data.targetHost : '');
+        self.domains(data && data.domains ? data.domains : []);
+        self.activeDomain(data && data.activeDomain ? data.activeDomain : '');
+
+        self.activeDomains([self.activeDomain()]);
+    };
+
+    self.save = function () {
+        API.project.update(self);
+    };
+
+    self.export = function () {
+        return {
+            path: self.path(),
+            active: self.active(),
+            muteList: self.muteList(),
+            targetHost: self.targetHost(),
+            domains: self.domains(),
+            activeDomain: self.activeDomain()
+        };
+    };
+
+    self.clickAddDomain = function (item, event) {
+        var domain = $.trim(prompt('请输入想要添加的域名：'));
+        if (domain) {
+            if (!/^[\w\.\-]+$/.exec(domain)) {
+                alert('格式不对吧');
+            } else {
+                if (self.domains.indexOf(domain) > -1) {
+                    alert('域名已存在'); // todo: 直接选择
+                } else {
+                    self.domains.unshift(domain);
+                    self.activeDomains([domain]);
+                }
+            }
+        }
+    };
+
+    self.clickRemoveDomain = function (item, event) {
+        self.domains.remove(self.activeDomain());
+        if (self.allHosts().length) {
+            self.activeDomains([self.allHosts()[0]]);
+        }
     };
 
     if (data) {
         self.load(data);
     }
+}
+
+function FolderSegment(name, relativePath) {
+    var self = this;
+
+    self.name = ko.observable(name);
+    self.relativePath = ko.observable(relativePath);
 }
 
 
@@ -33,15 +96,24 @@ function FileModel(data, project) {
     self.type = ko.observable(data['type']);
     self.absolutePath = ko.observable(data['absolutePath']);
 
-    self.url = ko.computed(function () {
+    self.relativePath = ko.computed(function () {
         var relPath = self.absolutePath().replace(project.path(), '');
         if (relPath && relPath[0] == '/') {
             relPath = relPath.substr(1);
         }
-        return /.*?:\/\/.*?\//.exec(location.href)[0] + relPath;
+        return relPath;
     });
 
-    self.isMute = ko.computed(function () {
+    self.url = ko.computed(function () {
+        var root = project.root;
+        if (root.port()) {
+            return 'http://' + project.activeDomain() + ':' + root.port() + '/' + self.relativePath();
+        } else {
+            return 'http://' + project.activeDomain() + '/' + self.relativePath();
+        }
+    });
+
+    self.isMuted = ko.computed(function () {
         var mutePath;
         if (!project.muteList()) {
             return false;
@@ -56,20 +128,20 @@ function FileModel(data, project) {
     });
 }
 
-
-function FolderSegment(name, path) {
-    var self = this;
-
-    self.name = ko.observable(name);
-    self.absolutePath = ko.observable(path);
-}
-
-
 function ViewModel() {
     var self = this;
 
-    self.hostText = ko.observable(!location.port || location.port == 80 ? '127.0.0.1' : ('127.0.0.1:' + location.port));
-    self.localHosts = ko.observable(['127.0.0.1']);
+    self.port = ko.observable(location.port);
+    self.localHosts = ko.observableArray(['127.0.0.1']);
+    self.activeHost = ko.observable('127.0.0.1');
+    self.hostText = ko.computed(function () {
+        if (self.port()) {
+            return self.activeHost() + ':' + self.port();
+        } else {
+            return self.activeHost();
+        }
+    });
+
     self.showSettings = ko.observable(!$.cookie('hideSettings'));
     self.showSettings.subscribe(function (newValue) {
         $.cookie('hideSettings', newValue);
@@ -82,7 +154,7 @@ function ViewModel() {
         }, 500);
     });
 
-    self.currentProject = ko.computed({
+    self.activeProject = ko.computed({
         read: function () {
             var project;
             for (var i = 0; i < self.projects().length; i += 1) {
@@ -95,28 +167,73 @@ function ViewModel() {
         },
         write: function(activeProject) {
             var project;
-            if (activeProject != self.currentProject()) {
+            if (activeProject != self.activeProject()) {
                 for (var i = 0; i < self.projects().length; i += 1) {
                     project = self.projects()[i];
                     if (project.path() != activeProject.path()) {
                         project.active(false);
                     } else {
                         project.active(true);
+                        project.save()
                     }
                 }
             }
         },
         owner: self
     });
-    self.currentProject.subscribe(function (newValue) {
+    self.activeProject.subscribe(function (newValue) {
         setTimeout(function () {
-            $('#script-hint-link').tooltip();
-        }, 1000)
+            $('#project [data-toggle=tooltip]').tooltip();
+        }, 500)
+        self.currentFolder('');
     });
 
-
     self.folderSegments = ko.observableArray([]);
+    self.currentFolder = ko.observable('');
+    self.currentFolder.subscribe(function (relativePath) {
+        self.folderSegments.removeAll();
+        var parts = relativePath.split('/');
+        var relativeParts = [];
+        $(parts).each(function (i, part) {
+            relativeParts.push(part);
+            if (part) {
+                self.folderSegments.push(new FolderSegment(part, relativeParts.join('/')));
+            }
+        });
+        self.queryFileList(joinPath(self.activeProject().path(), relativePath));
+    });
+    self.currentFolder.extend({notify:'always'}); // 不论是否有修改，都发生subscribe
+
     self.files = ko.observableArray([]);
+    self.QRCodeFile = ko.observable(null);
+    self.QRCodeFile.subscribe(function (newValue) {
+        if (newValue) {
+            $('#qrcode-modal').modal();
+            self.updateQRCode(newValue.url());
+        }
+    });
+    self.QRCodeFile.extend({notify:'always'});
+
+    self.QRUrlChange = function (item, event) {
+        console.log($(event.target).val());
+        self.updateQRCode($(event.target).val());
+    };
+
+    self.updateQRCode = function (text) {
+        var $el = $('#qrcode');
+        $el.empty();
+        $el.qrcode({
+            width: $el.width(),
+            height: $el.height(),
+            text: text
+        });
+    };
+
+    self.hostChange = function (item, event) {
+        console.log(item, event);
+    };
+
+
 
     // projects ===============================================
     self.findProject = function(path) {
@@ -130,32 +247,28 @@ function ViewModel() {
         return null;
     };
 
-    self.updateProject = function (projectData) {
+    self.loadProjectData = function (projectData) {
         var foundProject = self.findProject(projectData.path);
         if (foundProject) {
             foundProject.load(projectData);
         } else {
-            self.projects.push(new ProjectModel(projectData))
+            self.projects.push(new ProjectModel(projectData, self))
         }
     };
 
     self.queryProjects = function () {
         API.project.list(function (data) {
             $(data['projects']).each(function (i, obj) {
-                self.updateProject(obj);
+                self.loadProjectData(obj);
             });
             if (self.files().length == 0) {
-                self.selectProject(self.currentProject());
+                self.selectProject(self.activeProject());
             }
         });
     };
 
     self.selectProject = function (project) {
-        API.project.setCurrent(project.path(), function (data) {
-            self.currentProject(project);
-            self.queryFileList(project.path());
-            self.queryMuteList();
-        })
+        self.activeProject(project);
     };
 
     self.askRemoveProject = function (project) {
@@ -171,19 +284,14 @@ function ViewModel() {
     };
 
     self.addProjectWithPath = function (path) {
-        var $input = $("#new-path-input");
-        var $btn = $('#project-add-btn');
         API.project.add(path, function (resp) {
-            self.updateProject(resp.project);
-            if (self.projects().length == 1 && !self.currentProject()) {
+            self.loadProjectData(resp.project);
+            if (self.projects().length == 1 && !self.activeProject()) {
                 self.selectProject(self.projects()[0]);
             }
-            $input.attr('disabled', false).val('');
-            $btn.attr('disabled', false);
+            $("#new-path-input").val('');
         }, function (data) {
             alert(data['message']);
-            $input.attr('disabled', false);
-            $btn.attr('disabled', false);
         });
     };
 
@@ -200,24 +308,29 @@ function ViewModel() {
     };
 
     self.submitTargetHost = function (item, event) {
-        var targetHost = $.trim($('#target-host-input').val());
+        var targetHost = $.trim($('#target-host-input').val()),
+            project = self.activeProject();
 
-        if (/^[\w\.:]+$/.exec(targetHost)){
-            API.project.setTargetHost(self.currentProject().path(), targetHost, function (resp) {
-                self.currentProject().targetHost(targetHost);
-            });
+        if (!targetHost) {
+            self.clearTargetHost();
+        } else if (/^[\w\.:\-]+$/.exec(targetHost)){
+            project.targetHost(targetHost);
+            project.save()
         } else {
-            alert('请输入域名或ip地址（不带协议和路径）和端口，如：\n127.0.0.1:8080\n192.168.0.101\ndomain.com:8080\nmysite.com');
+            alert('请输入域名或ip地址（不带协议和路径）和端口，如：\n' +
+                '127.0.0.1:8080\n' +
+                '192.168.0.101\n' +
+                'domain.com:8080\n' +
+                'mysite.com');
             $('#target-host-input').val(targetHost).focus().select();
         }
     };
 
     self.clearTargetHost = function (item, event) {
-        self.currentProject().targetHost('');  // 这里很诡异，不能将input的内容清空
+        var project = self.activeProject();
+        project.targetHost('');  // 这里很诡异，不能将input的内容清空
+        project.save();
         $('#target-host-input').val('');
-        API.project.setTargetHost(self.currentProject().path(), "", function (resp) {
-            console.log(resp);
-        });
     };
 
     // ================================= Files
@@ -227,95 +340,60 @@ function ViewModel() {
         API.os.listDir(path, function (data) {
             self.files.removeAll();
             $(data['list']).each(function (i, obj) {
-                var file = new FileModel(obj, self.currentProject());
+                var file = new FileModel(obj, self.activeProject());
                 self.files.push(file);
             });
             $('#file-list td.op a').tooltip();
         });
     };
 
-    self.refreshFolderSegments = function (path) {
-        var rootPath = self.currentProject().path();
-        var relPath = path.replace(rootPath, '');
-        if (relPath[0] == '/') {
-            relPath = relPath.substr(1);
-        }
-        var currentPath = rootPath;
-
-        self.folderSegments.removeAll();
-        $(relPath.split('/')).each(function (i, segment) {
-            if (currentPath[currentPath.length - 1] != '/') {
-                currentPath += '/';
-            }
-            currentPath += segment;
-            if (segment) {
-                self.folderSegments.push(new FolderSegment(segment, currentPath));
-            }
-        });
-    };
-
     self.clickFile = function (file, event) {
         if (file.type() == 'DIR') {
-            self.enterFolder(file.absolutePath());
+            self.enterFolder(file.relativePath());
             return false;
         }
         return true;
     };
 
-    self.clickFolderSegment = function (obj, event) {
-        if (obj.path) {
-            self.enterFolder('');
-        } else {
-            self.enterFolder(obj.absolutePath());
-        }
+    self.clickFolderSegment = function (fs, event) {
+        self.currentFolder(fs.relativePath());
     };
 
-    self.enterFolder = function (absolutePath) {
-        self.refreshFolderSegments(absolutePath);
-
-        var foundSegment = null;
-        var foundIndex = -1;
-        $(self.folderSegments()).each(function (i, segment) {
-           if (segment.absolutePath() == absolutePath) {
-               foundSegment = segment;
-               foundIndex = i;
-               return false;
-           }
-        });
-
-        if (foundSegment) {
-            self.queryFileList(foundSegment.absolutePath());
-        } else {
-            self.queryFileList(self.currentProject().path());
-        }
-        self.folderSegments.splice(foundIndex + 1);
-    };
-
-    // ========================== mutePath
-    self.queryMuteList = function () {
-        API.project.muteList(self.currentProject().path(), function (data) {
-            self.currentProject().muteList(data['muteList']);
-        });
+    self.enterFolder = function (relativePath) {
+        self.currentFolder(relativePath);
     };
 
     self.toggleMute = function (file, event) {
-        API.project.toggleMutePath(self.currentProject().path(), file.absolutePath(), file.isMute(), function (data) {
-            self.queryMuteList();
-        });
+        var project = self.activeProject(),
+            mutePath = file.relativePath();
+
+        if (file.isMuted()) {
+            project.muteList.remove(mutePath);
+        } else {
+            if (project.muteList.indexOf(mutePath) == -1) {
+                project.muteList.push(mutePath);
+            }
+        }
+        project.save();
     };
 
-    // ========================== mutePath
+    // ========================== misc
     self.queryLocalHosts = function () {
         API.os.localHosts(function (resp) {
             self.localHosts(resp.hosts);
         });
-    }
+    };
+
+    self.showQRCode = function (item, event) {
+        self.QRCodeFile(item);
+    };
 }
 
 var vm = new ViewModel();
-ko.applyBindings(vm);
 
 $(function () {
-    vm.queryProjects();
+    ko.applyBindings(vm);
     vm.queryLocalHosts();
+    vm.queryProjects();
+
 });
