@@ -14,11 +14,12 @@ function ProjectModel(data, root) {
     self.muteList = ko.observableArray([]);
     self.targetHost = ko.observable('');
     self.domains = ko.observableArray([]);
-    self.activeDomain = ko.observableArray('');
+    self.activeDomain = ko.observable('127.0.0.1');
 
     // 试了无数的其他方法，最后只能用这种官方的方法（options + selectedOptions）来实现了
-    self.activeDomains = ko.observableArray([]);
+    self.activeDomains = ko.observableArray(['127.0.0.1']);
     self.activeDomains.subscribe(function (newValue) {
+        console.log(newValue);
         self.activeDomain(newValue[0]);
         self.save();
         self.root.QRCodeFile(self.root.QRCodeFile()); // todo: so ugly, refactor this
@@ -33,7 +34,7 @@ function ProjectModel(data, root) {
         self.muteList(data && data.muteList ? data.muteList : []);
         self.targetHost(data && data.targetHost ? data.targetHost : '');
         self.domains(data && data.domains ? data.domains : []);
-        self.activeDomain(data && data.activeDomain ? data.activeDomain : '');
+        self.activeDomain(data && data.activeDomain ? data.activeDomain : '127.0.0.1');
 
         self.activeDomains([self.activeDomain()]);
     };
@@ -200,7 +201,9 @@ function ViewModel() {
                 self.folderSegments.push(new FolderSegment(part, relativeParts.join('/')));
             }
         });
-        self.queryFileList(joinPath(self.activeProject().path(), relativePath));
+        if (self.activeProject()) {
+            self.queryFileList(joinPath(self.activeProject().path(), relativePath));
+        }
     });
     self.currentFolder.extend({notify:'always'}); // 不论是否有修改，都发生subscribe
 
@@ -208,7 +211,10 @@ function ViewModel() {
     self.QRCodeFile = ko.observable(null);
     self.QRCodeFile.subscribe(function (newValue) {
         if (newValue) {
-            $('#qrcode-modal').modal();
+            $('#qrcode-modal').modal()
+                .on('hidden', function () {
+                    self.QRCodeFile(null);
+                });
             self.updateQRCode(newValue.url());
         }
     });
