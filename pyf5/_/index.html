@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>F5</title>
+
     <link href="/_/css/bootstrap.min.css" rel="stylesheet">
     <link href="/_/css/bootstrap-responsive.min.css" rel="stylesheet">
     <link href="/_/css/index.less" type="text/css" rel="stylesheet/less">
@@ -34,9 +35,9 @@
 
             <table id="projects" class="table table-hover">
                 <tbody data-bind="foreach:projects">
-                    <tr class="project" data-bind="css:{selected: $parent.activeProject() == $data}">
+                    <tr class="project" data-bind="css:{selected: active}">
                         <td class="path">
-                            <a href="javascript:" data-bind="text:path, click:$parent.selectProject"></a>
+                            <a href="javascript:" data-bind="text:path, click:$parent.onSelectProject"></a>
                         </td>
                         <td class="op">
                             <a href="javascript:" title="从列表中去除"
@@ -53,39 +54,39 @@
 
             <!-- ko if: targetHost -->
             <a id="target-host" class="label label-info" href="/" target="_blank">
-                <span>映射到</span>
+                <span data-bind="text:activeDomainAndPort"></span>
                 <i class="icon-arrow-right icon-white"></i>
                 <span data-bind="text:targetHost"></span>
             </a>
             <!-- /ko -->
 
-            <a id="script-hint-link" class="btn btn-small pull-right"
+            <a id="settings-button" class="btn btn-small pull-right"
                data-toggle="tooltip" title="设置域名映射" data-placement="left"
                href="javascript:"
-               data-bind="style: {visibility: $root.showSettings() ? 'hidden' : 'visible'},
-               click: function(data, event) { $root.showSettings(true); }">
+               data-bind="style: {visibility: showSettings() ? 'hidden' : 'visible'},
+               click: function(data, event) { showSettings(true); }">
                 <i class="icon-cog"></i>
             </a>
 
             <div class="hr clearfix"></div>
 
-            <form id="script-hint" class="alert alert-info" style="display:none"
-                  data-bind="submit:$root.submitTargetHost,
-                  style:{display: $root.showSettings() ? 'block' : 'none'}">
-                <a href="javascript:" class="close" data-bind="click: function(data,event){ $root.showSettings(false); }">&times;</a>
+            <form id="settings-form" class="alert alert-info" style="display:none"
+                  data-bind="submit: submitTargetHost,
+                  style:{display: showSettings() ? 'block' : 'none'}">
+                <a href="javascript:" class="close" data-bind="click: function(data,event){ showSettings(false); }">&times;</a>
                 <p>
                     如果是<b>静态</b>网站，请直接点击下方文件列表中的html文件来进行实时预览
                 </p>
                 <p>
-                    如果是<b>动态</b>网站，请设定域名和端口映射，设定完成之后，访问<span data-bind="text:$root.hostText"></span>就相当于访问映射的网站（F5会帮您加上自刷新功能）
+                    如果是<b>动态</b>网站，请设定域名和端口映射，设定完成之后，访问<span data-bind="text:activeDomainAndPort"></span>就相当于访问映射的网站（F5会帮您加上自刷新功能）
                     <div class="input-append">
                         <input class="span3" type="text" id="target-host-input"
                                placeholder="somedomain.com:8080" data-bind="attr:{value:targetHost}">
                         <button class="btn" type="submit">保存</button>
-                        <button class="btn" type="button" data-bind="click:$root.clearTargetHost">清除</button>
+                        <button class="btn" type="button" data-bind="click:clearTargetHost">清除</button>
                     </div>
                     <br>或者也可以在网页的&lt;/body&gt;之前插入下面这段代码:
-                    <br>&lt;script src="http://<span data-bind="text:$root.hostText"></span>/_/js/reloader.js"&gt;&lt;/script&gt;
+                    <br>&lt;script src="http://<span data-bind="text:activeDomainAndPort"></span>/_/js/reloader.js"&gt;&lt;/script&gt;
                 </p>
 
             </form>
@@ -93,39 +94,39 @@
             <ul class="breadcrumb">
                 <li>
                     <a href="javascript:"
-                       data-bind="text:path, click:function() { $root.currentFolder('') }"></a>
+                       data-bind="text:path, click: goRoot"></a>
                 </li>
-                <!-- ko foreach: $root.folderSegments -->
+                <!-- ko foreach: folderSegments -->
                 <li>
                     <span class="divider">/</span>
                     <a href="javascript:"
-                       data-bind="text: $data.name, click:$root.clickFolderSegment"></a>
+                       data-bind="text: $data.name, click: onClick"></a>
                 </li>
                 <!-- /ko -->
             </ul>
 
             <table id="file-list" class="table table-hover">
-                <tbody data-bind="foreach:$root.files">
+                <tbody data-bind="foreach:files">
                     <tr data-bind="css:{mute:isMuted}">
                         <td class="file">
                             <a href="javascript:" class="icon" target="_blank"
-                               data-bind="text:name, css:type, click:$root.clickFile, attr:{href:url}"></a>
+                               data-bind="text:name, css:type, click:onClick, attr:{href:url}"></a>
                         </td>
 
                         <td class="span2 op">
                             <a href="javascript:" class="qrcode"
                                data-toggle="tooltip" title="URL+二维码"
-                               data-bind="click: $root.showQRCode">
+                               data-bind="click: $parent.showQRCode">
                                 <i class="icon-qrcode"></i>
                             </a>
                             <a href="javascript:" class="mute"
                                data-toggle="tooltip" title="不监听更新"
-                               data-bind="click:$root.toggleMute">
+                               data-bind="click:mute">
                                 <i class="icon-ban-circle"></i>
                             </a>
                             <a href="javascript:" class="unmute"
                                data-toggle="tooltip" title="监听更新"
-                               data-bind="click:$root.toggleMute">
+                               data-bind="click:unmute">
                                 <i class="icon-ok-circle"></i>
                             </a>
                         </td>
@@ -141,11 +142,11 @@
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
         <h3>二维码URL</h3>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" data-bind="with:activeProject">
 
-        <div id="hosts" data-bind="with:activeProject">
+        <div id="hosts">
             <span>域名：</span>
-            <select data-bind="options: allHosts, selectedOptions: activeDomains, event:{change: $root.hostChange}">
+            <select data-bind="options: allHosts, selectedOptions: activeDomains">
             </select>
 
             <div class="btn-group ">
@@ -163,7 +164,7 @@
 
         <!-- ko with: QRCodeFile -->
         <input name="url" class="input-block-level" type="text"
-               data-bind="value:url, event:{keyup: $root.QRUrlChange, change: $root.QRUrlChange}">
+               data-bind="value:url, event:{keyup: $parent.QRUrlChange, change: $parent.QRUrlChange}">
         <!-- /ko -->
 
         <div id="qrcode"></div>
@@ -176,5 +177,17 @@
 
 <script src="/_/js/api.js"></script>
 <script src="/_/js/index.js"></script>
+
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-22253493-9', '127.0.0.1');
+    ga('send', 'pageview');
+
+</script>
+
 </body>
 </html>

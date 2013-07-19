@@ -1,6 +1,7 @@
 
 function getAPI(cmd, params, success_handler, error_handler) {
     var url = '/_/api/' + cmd;
+    params['_'] = Math.random();
     $.getJSON(url, params, function (data) {
         if (data.status == 'error') {
             if (error_handler) {
@@ -52,7 +53,7 @@ var API = {
         },
         update: function(project, successHandler, errorHandler) {
             var projectData = project.export();
-            getAPI('project/update', {project: JSON.stringify(projectData)}, successHandler, errorHandler);
+            postAPI('project/update', {project: JSON.stringify(projectData)}, successHandler, errorHandler);
         }
     },
 

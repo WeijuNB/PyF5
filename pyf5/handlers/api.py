@@ -90,6 +90,7 @@ class APIRequestHandler(RequestHandler):
         self.finish()
         print 'API:', '======================='
         print self.request.uri
+        print self.request.arguments
         print ret
         print '===================='
 
@@ -206,6 +207,7 @@ class ProjectAPI(APIRequestHandler):
             for p in self.projects:
                 if p != project:
                     p.active = False
+            self.application.load_project(project)
 
         self._save_config()
         return self.respond_success()
