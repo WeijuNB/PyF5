@@ -105,6 +105,10 @@ class F5Server(Application):
         return self.project.path
 
     def project_file_changed(self):
+        print '##########################'
+        print 'project_file_changed'
+        print ChangeRequestHandler.handlers
+        print '##########################'
         ChangeRequestHandler.broadcast_changes()
 
 
