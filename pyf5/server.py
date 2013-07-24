@@ -1,6 +1,7 @@
 #coding:utf-8
 import os
 import cPickle
+from tornado import ioloop
 
 from tornado.web import Application, RedirectHandler, StaticFileHandler
 from handlers.changes import ChangeRequestHandler
@@ -109,7 +110,7 @@ class F5Server(Application):
         print 'project_file_changed'
         print ChangeRequestHandler.handlers
         print '##########################'
-        ChangeRequestHandler.broadcast_changes()
+        ioloop.IOLoop.instance().add_callback(ChangeRequestHandler.broadcast_changes)
 
 
 if __name__ == "__main__":

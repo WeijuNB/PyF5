@@ -10,7 +10,8 @@ class ChangeRequestHandler(RequestHandler):
 
     @classmethod
     def broadcast_changes(cls):
-        for handler in cls.handlers:
+        handlers = list(cls.handlers)
+        for handler in handlers:
             changes = handler.application.watcher.get_changes_since(handler.query_time)
             if changes:
                 handler.respond_changes(changes)
@@ -40,9 +41,10 @@ class ChangeRequestHandler(RequestHandler):
             'changes': [change.dict() for change in changes],
         }))
         self.write(ret)
-        self.finish()
 
         if self.timeout:
             ioloop.IOLoop.instance().remove_timeout(self.timeout)
             self.timeout = None
-        ioloop.IOLoop.instance().add_callback(lambda: self.handlers.remove(self))
+
+        self.finish()
+        self.handlers.remove(self)

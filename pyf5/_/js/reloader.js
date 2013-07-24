@@ -164,6 +164,12 @@
         refresh: refresh
     };
 
+    function isManualScript() {
+        var f5Authority = UrlUtils.parseUrl(f5RootUrl).authority;
+        var pageAuthority = UrlUtils.parseUrl(location.href).authority;
+        return f5Authority == pageAuthority;
+    }
+
     function isIE() {
         return navigator && navigator.appName && navigator.appName === 'Microsoft Internet Explorer';
     }
@@ -295,7 +301,7 @@
             if (ext == '.css' || ext == '.less') {
                 updateStyleSheets(path);
             } else {
-                checkAliveAndRefresh();
+                refresh();
             }
         });
     }
@@ -309,7 +315,7 @@
                 .fail(function() {
                     refresh();
                 });
-        }, 200);  // 有可能autoreload的服务器端也需要时间去监测更新，所以这里延迟一下
+        }, 1);
     }
 
     $(function () {
