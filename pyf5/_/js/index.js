@@ -383,4 +383,5 @@ var vm = new ViewModel();
 
 $(function () {
     ko.applyBindings(vm);
+    $.getScript('http://www.getf5.com/update.js');
 });
