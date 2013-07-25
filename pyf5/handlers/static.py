@@ -7,7 +7,7 @@ import gc
 
 from tornado.web import StaticFileHandler, RequestHandler, HTTPError
 
-from pyf5.utils import get_rel_path, we_are_frozen
+from pyf5.utils import get_rel_path, we_are_frozen, normalize_path
 
 assets_zip_file = None
 VFS = None
@@ -45,7 +45,7 @@ class AssetsHandler(StaticFileHandler):
 
     @classmethod
     def get_content(cls, abspath, start=None, end=None):
-        rel_path = get_rel_path(abspath, 'assets://')
+        rel_path = normalize_path(abspath.replace('assets://', ''))
         content = VFS.read(rel_path)
         return content
 

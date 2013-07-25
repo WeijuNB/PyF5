@@ -87,3 +87,6 @@ def jsonable(o):
         return o.dict()
     else:
         raise Exception('cant jsonable')
+
+if __name__ == '__main__':
+    print get_rel_path(u'assets://index.html', 'assets://')
