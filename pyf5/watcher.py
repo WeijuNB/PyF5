@@ -69,7 +69,6 @@ class ChangesWatcher(FileSystemEventHandler):
             self.add_pure_change(Change(timestamp=now, path=src_relative_path, type=event.event_type))
 
         try:
-            print '############# callback:notify_changes_with_delay ############'
             self.notify_changes_with_delay()
         except RuntimeError:
             print 'ioloop.add_callback failed'
@@ -77,11 +76,9 @@ class ChangesWatcher(FileSystemEventHandler):
     def notify_changes_with_delay(self):
         loop = ioloop.IOLoop.instance()
         if self.changes_timer:
-            print '########## kill changes_handlers 0.1s later #############'
             loop.remove_timeout(self.changes_timer)
 
         if self.changes_handler and callable(self.changes_handler):
-            print '########## call changes_handlers 0.1s later #############', time.time()
             self.changes_timer = loop.add_timeout(time.time() + 0.1, self.changes_handler)
 
     def find_related_trash_changes(self, change):

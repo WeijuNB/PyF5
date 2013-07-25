@@ -32,14 +32,12 @@ class ChangeRequestHandler(RequestHandler):
     def get(self, *args, **kwargs):
         changes = self.application.watcher.get_changes_since(self.query_time)
         if changes:
-            print '##### direct respond #####'
             self.respond_changes(changes)
         else:
             deadline = time.time() + self.delay
             self.timeout = ioloop.IOLoop.instance().add_timeout(deadline, self.respond_change_on_timeout)
 
     def respond_change_on_timeout(self):
-        print '### respond_change_on_timeout ###'
         changes = self.application.watcher.get_changes_since(self.query_time)
         self.respond_changes(changes)
 

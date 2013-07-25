@@ -7,6 +7,7 @@ from tornado import ioloop
 from tornado.web import Application, RedirectHandler, StaticFileHandler
 from handlers.changes import ChangeRequestHandler
 from handlers.proxy import ForwardRequestHandler
+from settings import VERSION
 from watcher import ChangesWatcher
 from models import Config
 
@@ -38,6 +39,7 @@ class F5Server(Application):
         settings = {
             'debug': True,
             'template_path': os.path.join(module_path(), '_'),
+            'version': VERSION
         }
 
         Application.__init__(self, handlers, ".*$", None, False, **settings)

@@ -1,6 +1,7 @@
 #coding:utf-8
 import sys
 from setuptools import setup, find_packages
+from pyf5.settings import VERSION
 
 try:
     import py2exe
@@ -18,7 +19,7 @@ kwargs_py2exe = dict(
             ],
             'compressed': True,
             'dll_excludes': ['msvcr71.dll'],
-            }
+        }
     },
     zipfile=None,
 )
@@ -30,7 +31,7 @@ kwargs_egg = dict(
         'pyf5': ['_/*.*'],
     },
     include_package_data=True,
-    version='0.9.1.1',
+    version=VERSION,
     author="luwenjin",
     author_email="luwenjin@gmail.com",
     url="http://getf5.com",

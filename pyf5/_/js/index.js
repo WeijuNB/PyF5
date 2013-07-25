@@ -384,7 +384,12 @@ var vm = new ViewModel();
 $(function () {
     ko.applyBindings(vm);
 
-    $.getScript('http://www.getf5.com/update.js');
+    API.os.f5Version(function (resp) {
+        if (resp.status == 'ok') {
+            var version = resp.version;
+            $.getScript('http://www.getf5.com/update.js?ver=' + version);
+        }
+    });
 
     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),

@@ -58,6 +58,9 @@ var API = {
     },
 
     os: {
+        f5Version: function(successHandler, errorHandler) {
+            getAPI('os/f5Version', {}, successHandler, errorHandler);
+        },
         listDir: function(path, successHandler, errorHandler) {
             getAPI('os/listDir', {path: path}, successHandler, errorHandler);
         },

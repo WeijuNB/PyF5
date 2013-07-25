@@ -4,6 +4,8 @@ import tornado
 import tornado.httpclient
 from tornado.web import asynchronous
 
+from pyf5.settings import RELOADER_TAG
+
 
 class ForwardRequestHandler(tornado.web.RequestHandler):
     forward_host = None
@@ -49,7 +51,7 @@ class ForwardRequestHandler(tornado.web.RequestHandler):
                 if response.body:
                     content_type = response.headers.get('Content-Type', '')
                     if content_type and 'text/html' in content_type:
-                        body = response.body.replace('</body>', '<script id="_f5_script" src="/_/js/reloader.js"></script>\n</body>')
+                        body = response.body.replace('</body>', RELOADER_TAG + '\n</body>')
                     else:
                         body = response.body
 

@@ -8,6 +8,7 @@ import gc
 from tornado.web import StaticFileHandler, RequestHandler, HTTPError
 
 from pyf5.utils import get_rel_path, we_are_frozen, normalize_path
+from pyf5.settings import RELOADER_TAG
 
 assets_zip_file = None
 VFS = None
@@ -66,8 +67,6 @@ class AssetsHandler(StaticFileHandler):
 
 
 class StaticSiteHandler(StaticFileHandler):
-    SCRIPT_AND_END_OF_BODY = '<script id="_f5_script" src="/_/js/reloader.js"></script>\n</body>'
-
     def should_return_304(self):
         return False
 
@@ -83,7 +82,7 @@ class StaticSiteHandler(StaticFileHandler):
         gc.collect()  # 在mp4内容的时候，如果刷新网页会导致10053错误，并且内存不能回收，这里粗暴处理一下
         if cls.is_html_path(abspath):
             html = open(abspath, 'r').read()
-            html = html.replace('</body>', cls.SCRIPT_AND_END_OF_BODY)
+            html = html.replace('</body>', RELOADER_TAG + '\n</body>')
             return html
         else:
             return StaticFileHandler.get_content(abspath, start, end)

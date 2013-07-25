@@ -96,6 +96,9 @@ class APIRequestHandler(RequestHandler):
 
 
 class OSAPI(APIRequestHandler):
+    def f5Version(self):
+        return self.respond_success({'version': self.application.settings['version']})
+
     def listDir(self):
         path = self.get_argument('path', '')
         if not path:
