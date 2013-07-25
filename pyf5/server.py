@@ -107,8 +107,9 @@ class F5Server(Application):
 
     def project_file_changed(self):
         print '##########################'
-        print 'project_file_changed'
-        print ChangeRequestHandler.handlers
+        print 'project_file_changed, respond to:'
+        for handler in ChangeRequestHandler.handlers:
+            print '-', handler.request.headers.get('Referer')
         print '##########################'
         ioloop.IOLoop.instance().add_callback(ChangeRequestHandler.broadcast_changes)
 
