@@ -1,6 +1,7 @@
 #coding:utf-8
 import os
 import cPickle
+import time
 from tornado import ioloop
 
 from tornado.web import Application, RedirectHandler, StaticFileHandler
@@ -106,12 +107,12 @@ class F5Server(Application):
         return self.project.path
 
     def project_file_changed(self):
-        print '##########################'
+        print '#################################', time.time()
         print 'project_file_changed, respond to:'
         for handler in ChangeRequestHandler.handlers:
-            print '-', handler.request.headers.get('Referer')
-        print '##########################'
-        ioloop.IOLoop.instance().add_callback(ChangeRequestHandler.broadcast_changes)
+            print '-', handler
+        print '#################################'
+        ChangeRequestHandler.broadcast_changes()
 
 
 if __name__ == "__main__":

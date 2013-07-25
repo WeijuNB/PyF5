@@ -6,7 +6,7 @@
 
 body{
   overflow-y:scroll;
-
+  font-size: 13px;
 }
 
 h1, h2, h3 {
@@ -124,81 +124,92 @@ h1, h2, h3 {
   }
 }
 
-#target-host {
-  float: left;
-  font-weight: normal;
-  margin-top: 16px;
-  margin-right: 10px;
-  padding: 3px 10px;
-}
+#project {
+  padding-top: 13px;
 
-.hr {
-  margin: 5px;
-}
+  #target-host {
+    float: right;
+    font-weight: normal;
+    margin-top: 8px;
+    padding: 3px 10px;
+  }
 
-#settings-form{
-  font-size: 12px;
-  margin-bottom: 10px;
-}
+  #pane-settings {
 
+    form {
+      font-size: 12px;
+      margin-bottom: 0px;
 
-ul.breadcrumb {
-  list-style: none;
-  margin-bottom: 5px;
-}
-
-#file-list {
-  tbody{
-    tr {
-      td.file {
-        a {
-          padding-left: 20px;
-        }
+      .clear-target-host {
+        display: inline-block;
+        vertical-align: top;
+        line-height: 30px;
+        margin-left: 10px;
       }
+    }
+  }
 
-      td.op {
-        text-align: right;
+  #pane-files {
+    ul.breadcrumb {
+      list-style: none;
+      margin-bottom: 5px;
+    }
 
-        a {
-          visibility: hidden;
-          margin-left: 8px;
+    #file-list {
+      tbody{
+        tr {
+          td.file {
+            a {
+              padding-left: 20px;
+            }
+          }
+
+          td.op {
+            text-align: right;
+
+            a {
+              visibility: hidden;
+              margin-left: 8px;
+              .opacity(0.3);
+              text-decoration: none;
+
+              &:hover{
+                .opacity(1);
+              }
+            }
+          }
+        }
+
+        tr:hover {
+          td.op {
+            a{
+              visibility: visible;
+
+              &.unmute{
+                display:none;
+              }
+            }
+          }
+        }
+
+        tr.mute td.file a{
+          color: #444;
           .opacity(0.3);
-          text-decoration: none;
+        }
 
-          &:hover{
-            .opacity(1);
+        tr.mute:hover td.op a{
+          &.mute {
+            display: none;
+          }
+          &.unmute {
+            display: inline;
           }
         }
-      }
-    }
-
-    tr:hover {
-      td.op {
-        a{
-          visibility: visible;
-
-          &.unmute{
-            display:none;
-          }
-        }
-      }
-    }
-
-    tr.mute td.file a{
-      color: #444;
-      .opacity(0.3);
-    }
-
-    tr.mute:hover td.op a{
-      &.mute {
-        display: none;
-      }
-      &.unmute {
-        display: inline;
       }
     }
   }
 }
+
 
 #qrcode-modal {
 

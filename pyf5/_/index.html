@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="utf-8">
     <title>F5</title>
@@ -35,17 +35,17 @@
 
             <table id="projects" class="table table-hover">
                 <tbody data-bind="foreach:projects">
-                    <tr class="project" data-bind="css:{selected: active}">
-                        <td class="path">
-                            <a href="javascript:" data-bind="text:path, click:$parent.onSelectProject"></a>
-                        </td>
-                        <td class="op">
-                            <a href="javascript:" title="从列表中去除"
-                               data-toggle="tooltip" data-bind="click:$root.askRemoveProject">
-                                <i class="icon-trash"></i>
-                            </a>
-                        </td>
-                    </tr>
+                <tr class="project" data-bind="css:{selected: active}">
+                    <td class="path">
+                        <a href="javascript:" data-bind="text:path, click:$parent.onSelectProject"></a>
+                    </td>
+                    <td class="op">
+                        <a href="javascript:" title="从列表中去除"
+                           data-toggle="tooltip" data-bind="click:$root.askRemoveProject">
+                            <i class="icon-trash"></i>
+                        </a>
+                    </td>
+                </tr>
                 </tbody>
             </table>
         </div>
@@ -60,80 +60,91 @@
             </a>
             <!-- /ko -->
 
-            <a id="settings-button" class="btn btn-small pull-right"
-               data-toggle="tooltip" title="设置域名映射" data-placement="left"
-               href="javascript:"
-               data-bind="style: {visibility: showSettings() ? 'hidden' : 'visible'},
-               click: function(data, event) { showSettings(true); }">
-                <i class="icon-cog"></i>
-            </a>
-
-            <div class="hr clearfix"></div>
-
-            <form id="settings-form" class="alert alert-info" style="display:none"
-                  data-bind="submit: submitTargetHost,
-                  style:{display: showSettings() ? 'block' : 'none'}">
-                <a href="javascript:" class="close" data-bind="click: function(data,event){ showSettings(false); }">&times;</a>
-                <p>
-                    如果是<b>静态</b>网站，请直接点击下方文件列表中的html文件来进行实时预览
-                </p>
-                <p>
-                    如果是<b>动态</b>网站，请设定域名和端口映射，设定完成之后，访问<span data-bind="text:activeDomainAndPort"></span>就相当于访问映射的网站（F5会帮您加上自刷新功能）
-                    <div class="input-append">
-                        <input class="span3" type="text" id="target-host-input"
-                               placeholder="somedomain.com:8080" data-bind="attr:{value:targetHost}">
-                        <button class="btn" type="submit">保存</button>
-                        <button class="btn" type="button" data-bind="click:clearTargetHost">清除</button>
-                    </div>
-                    <br>或者也可以在网页的&lt;/body&gt;之前插入下面这段代码:
-                    <br>&lt;script src="http://<span data-bind="text:activeDomainAndPort"></span>/_/js/reloader.js"&gt;&lt;/script&gt;
-                </p>
-
-            </form>
-
-            <ul class="breadcrumb">
-                <li>
-                    <a href="javascript:"
-                       data-bind="text:path, click: goRoot"></a>
-                </li>
-                <!-- ko foreach: folderSegments -->
-                <li>
-                    <span class="divider">/</span>
-                    <a href="javascript:"
-                       data-bind="text: $data.name, click: onClick"></a>
-                </li>
-                <!-- /ko -->
+            <ul class="nav nav-tabs">
+                <li class="active"><a href="#pane-files" data-toggle="tab">文件列表</a></li>
+                <li><a href="#pane-settings" data-toggle="tab">设置</a></li>
             </ul>
 
-            <table id="file-list" class="table table-hover">
-                <tbody data-bind="foreach:files">
-                    <tr data-bind="css:{mute:isMuted}">
-                        <td class="file">
-                            <a href="javascript:" class="icon" target="_blank"
-                               data-bind="text:name, css:type, click:onClick, attr:{href:url}"></a>
-                        </td>
+            <div class="tab-content">
+                <div class="tab-pane active" id="pane-files">
+                    <ul class="breadcrumb">
+                        <li>
+                            <a href="javascript:"
+                               data-bind="text:path, click: goRoot"></a>
+                        </li>
+                        <!-- ko foreach: folderSegments -->
+                        <li>
+                            <span class="divider">/</span>
+                            <a href="javascript:"
+                               data-bind="text: $data.name, click: onClick"></a>
+                        </li>
+                        <!-- /ko -->
+                    </ul>
 
-                        <td class="span2 op">
-                            <a href="javascript:" class="qrcode"
-                               data-toggle="tooltip" title="URL+二维码"
-                               data-bind="click: $parent.showQRCode">
-                                <i class="icon-qrcode"></i>
-                            </a>
-                            <a href="javascript:" class="mute"
-                               data-toggle="tooltip" title="不监听更新"
-                               data-bind="click:mute">
-                                <i class="icon-ban-circle"></i>
-                            </a>
-                            <a href="javascript:" class="unmute"
-                               data-toggle="tooltip" title="监听更新"
-                               data-bind="click:unmute">
-                                <i class="icon-ok-circle"></i>
-                            </a>
-                        </td>
+                    <table id="file-list" class="table table-hover">
+                        <tbody data-bind="foreach:files">
+                        <tr data-bind="css:{mute:isMuted}">
+                            <td class="file">
+                                <a href="javascript:" class="icon" target="_blank"
+                                   data-bind="text:name, css:type, click:onClick, attr:{href:url}"></a>
+                            </td>
 
-                    </tr>
-                </tbody>
-            </table>
+                            <td class="span2 op">
+                                <a href="javascript:" class="qrcode"
+                                   data-toggle="tooltip" title="URL+二维码"
+                                   data-bind="click: $parent.showQRCode">
+                                    <i class="icon-qrcode"></i>
+                                </a>
+                                <a href="javascript:" class="mute"
+                                   data-toggle="tooltip" title="不监听更新"
+                                   data-bind="click:mute">
+                                    <i class="icon-ban-circle"></i>
+                                </a>
+                                <a href="javascript:" class="unmute"
+                                   data-toggle="tooltip" title="监听更新"
+                                   data-bind="click:unmute">
+                                    <i class="icon-ok-circle"></i>
+                                </a>
+                            </td>
+
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="tab-pane" id="pane-settings">
+                    <p>
+                        如果您的网站是<b>纯静态项目</b>，那么无需任何设置，只要点击文件列表中的网页就能直接使用
+                    </p>
+
+                    <hr>
+
+                    <p>
+                        如果您的项目使用到了<b>服务器技术</b>（如php），请设置该服务器的域名和端口：
+                        <form data-bind="submit: submitTargetHost">
+                            <div class="input-append">
+                                <input class="span4" type="text" id="target-host-input"
+                                       placeholder="somedomain.com:8080" data-bind="attr:{value:targetHost}">
+                                <button class="btn" type="submit">保存</button>
+                            </div>
+                            <a class="clear-target-host" href="javascript:" data-bind="click: clearTargetHost">清除</a>
+                        </form>
+                        <span class="muted">
+                            设定完成之后，访问F5所在域名<span data-bind="text:activeDomainAndPort"></span>
+                            就相当于访问映射的域名和端口（并加上自动刷新功能）
+                        </span>
+                    </p>
+
+                    <hr>
+
+                    <p>
+                        如果不方便映射，也可以简单粗暴地在网页的&lt;/body&gt;之前插入如下代码来实现自动刷新:
+                        <pre>&lt;script src="http://<span data-bind="text:activeDomainAndPort"></span>/_/js/reloader.js"&gt;&lt;/script&gt;</pre>
+                    </p>
+                </div>
+            </div>
+
+
         </div>
     </div>
 </div>
@@ -178,16 +189,6 @@
 
 <script src="/_/js/api.js"></script>
 <script src="/_/js/index.js"></script>
-
-<script>
-    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-    ga('create', 'UA-22253493-9', '127.0.0.1');
-    ga('send', 'pageview');
-</script>
 
 </body>
 </html>

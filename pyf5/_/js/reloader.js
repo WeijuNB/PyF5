@@ -220,7 +220,7 @@
         var links, href, hasLess = false;
         links = findLINKs(path);
         if (links.length == 0) {
-            checkAliveAndRefresh();
+            refresh();
         } else {
             $(links).each(function(i, link) {
                 href = link.href || '';
