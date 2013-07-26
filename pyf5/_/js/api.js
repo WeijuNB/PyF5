@@ -15,7 +15,7 @@ function getAPI(cmd, params, success_handler, error_handler) {
             }
         }
     }).fail(function () {
-        alert('调用失败');
+        alert('调用失败:' + cmd + ',' + params);
     });
 }
 
@@ -35,7 +35,7 @@ function postAPI(cmd, params, success_handler, error_handler) {
             }
         }
     }, 'json').fail(function () {
-        alert('调用失败');
+        alert('调用失败:' + cmd + ',' + params);
     });
 }
 
