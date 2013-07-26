@@ -14,8 +14,8 @@ function getAPI(cmd, params, success_handler, error_handler) {
                 success_handler(data);
             }
         }
-    }).fail(function () {
-        alert('调用失败:' + cmd + ',' + params);
+    }).fail(function (resp) {
+        alert('调用失败:' + cmd + ',' + params + ',' + resp);
     });
 }
 
@@ -34,8 +34,8 @@ function postAPI(cmd, params, success_handler, error_handler) {
                 success_handler(data);
             }
         }
-    }, 'json').fail(function () {
-        alert('调用失败:' + cmd + ',' + params);
+    }, 'json').fail(function (resp) {
+            alert('调用失败:' + cmd + ',' + params + ',' + resp);
     });
 }
 
