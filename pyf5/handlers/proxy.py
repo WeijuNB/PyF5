@@ -62,7 +62,7 @@ class ForwardRequestHandler(tornado.web.RequestHandler):
         headers = self.request.headers
         headers['Host'] = self.forward_host
 
-        for key in ['If-Modified-Since', 'If-None-Match']:
+        for key in ['If-Modified-Since', 'If-None-Match', 'Expires']:
             if key in headers:
                 del headers[key]
 
