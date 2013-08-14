@@ -9,16 +9,7 @@ from tornado.web import StaticFileHandler, RequestHandler, HTTPError
 
 from pyf5.settings import CURRENT_MODE, PRODUCTION_MODE
 from pyf5.handlers.helpers import process_html, HTML_EXTENSIONS, SPECIAL_EXTENSIONS,  CSS_EXTENSIONS, process_css
-from pyf5.utils import get_rel_path, normalize_path
-
-
-assets_zip_file = None
-VFS = None
-if CURRENT_MODE == PRODUCTION_MODE:
-    from pyf5.zfs import ZipFileSystem
-    from pyf5.assets import assets_zip64
-    assets_zip_file = StringIO(base64.decodestring(assets_zip64))
-    VFS = ZipFileSystem(assets_zip_file)
+from pyf5.utils import normalize_path
 
 
 class MarkDownHandler(RequestHandler):
@@ -34,38 +25,6 @@ class MarkDownHandler(RequestHandler):
                     file_path=rel_path,
                     abs_path=md_path
                     )
-
-
-class AssetsHandler(StaticFileHandler):
-    def initialize(self, path, default_filename=None):
-        StaticFileHandler.initialize(self, path, default_filename)
-
-    def prepare(self):
-        self.asset_path = self.path_args[0]  # eg: '/js/reloader.js'[1:]
-
-    def should_return_304(self):
-        return False
-
-    @classmethod
-    def get_content(cls, abspath, start=None, end=None):
-        rel_path = normalize_path(abspath.replace('assets://', ''))
-        content = VFS.read(rel_path)
-        return content
-
-    def get_content_size(self):
-        return VFS.file_size(self.asset_path) or 0
-
-    def get_modified_time(self):
-        return int(VFS.modified_at(self.asset_path)) or 0
-
-    @classmethod
-    def get_absolute_path(cls, root, path):
-        return os.path.join('assets://', path)
-
-    def validate_absolute_path(self, root, absolute_path):
-        if not VFS.file_size(self.asset_path):
-            raise HTTPError(404)
-        return absolute_path
 
 
 class ManagedFileHandler(StaticFileHandler):

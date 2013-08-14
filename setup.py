@@ -1,12 +1,8 @@
 #coding:utf-8
 import sys
-from setuptools import setup, find_packages
-from pyf5.settings import VERSION
+from setuptools import setup
 
-try:
-    import py2exe
-except ImportError:
-    pass
+import py2exe
 
 kwargs_py2exe = dict(
     console=['f5.py'],
@@ -24,29 +20,5 @@ kwargs_py2exe = dict(
     zipfile=None,
 )
 
-kwargs_egg = dict(
-    name='pyf5',
-    packages=find_packages(),
-    package_data={
-        'pyf5': ['_/*.*'],
-    },
-    include_package_data=True,
-    version=VERSION,
-    author="luwenjin",
-    author_email="luwenjin@gmail.com",
-    url="http://getf5.com",
-    description="Web page auto reloader for web developers.",
-    # download_url="https://github.com/WeijuNB/PyF5",
-
-    install_requires={
-        "tornado": ['tornado>=3.1'],
-        'watchdog': ['watchdog>=0.6'],
-        'schematics': ['schematics>=0.6'],
-        },
-    scripts=['f5.py']
-)
-
 if sys.argv[1] and sys.argv[1].lower() == 'py2exe':
     setup(**kwargs_py2exe)
-else:
-    setup(**kwargs_egg)
