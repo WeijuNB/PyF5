@@ -85,10 +85,9 @@ class F5Server(Application):
 
         if len(self.handlers) > 1:
             self.handlers.pop(-1)
+
         if target_project.targetHost:
-            self.add_handlers(".*$", [
-                (r"/(.*)", ForwardRequestHandler),
-            ])
+            self.add_handlers(".*$", [(r"/(.*)", ForwardRequestHandler)])
             ForwardRequestHandler.forward_host = target_project.targetHost
         else:
             self.add_handlers(".*$", [
@@ -109,11 +108,6 @@ class F5Server(Application):
         return self.project.path
 
     def project_file_changed(self):
-        print '#################################', time.time()
-        print 'project_file_changed, respond to:'
-        for handler in ChangeRequestHandler.handlers:
-            print '-', handler
-        print '#################################'
         ChangeRequestHandler.broadcast_changes()
 
 

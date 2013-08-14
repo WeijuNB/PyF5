@@ -7,6 +7,7 @@ import gc
 
 from tornado.web import StaticFileHandler, RequestHandler, HTTPError
 
+from pyf5.handlers.contents import process_html, HTML_EXTENSIONS, SPECIAL_EXTENSIONS,  CSS_EXTENSIONS, process_css
 from pyf5.utils import get_rel_path, we_are_frozen, normalize_path
 from pyf5.settings import RELOADER_TAG
 
@@ -71,24 +72,20 @@ class StaticSiteHandler(StaticFileHandler):
         return False
 
     @classmethod
-    def is_html_path(cls, path):
-        _, ext = os.path.splitext(path)
-        if ext.lower() in ['.html', '.htm', '.shtml']:
-            return True
-        return False
-
-    @classmethod
     def get_content(cls, abspath, start=None, end=None):
         gc.collect()  # 在mp4内容的时候，如果刷新网页会导致10053错误，并且内存不能回收，这里粗暴处理一下
-        if cls.is_html_path(abspath):
-            html = open(abspath, 'r').read()
-            html = html.replace('</body>', RELOADER_TAG + '\n</body>')
-            return html
-        else:
-            return StaticFileHandler.get_content(abspath, start, end)
+        _, ext = os.path.splitext(abspath)
+        if ext in SPECIAL_EXTENSIONS:
+            content = open(abspath, 'r').read()
+            if ext in HTML_EXTENSIONS:
+                return process_html(content)
+            elif ext in CSS_EXTENSIONS:
+                return process_css(content)
+        return StaticFileHandler.get_content(abspath, start, end)
 
     def get_content_size(self):
-        if self.__class__.is_html_path(self.absolute_path):
+        _, ext = os.path.splitext(self.absolute_path)
+        if ext in SPECIAL_EXTENSIONS:
             content = self.__class__.get_content(self.absolute_path)
             return len(content)
         else:

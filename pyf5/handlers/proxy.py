@@ -4,7 +4,7 @@ import tornado
 import tornado.httpclient
 from tornado.web import asynchronous
 
-from pyf5.settings import RELOADER_TAG
+from pyf5.handlers import process_html, process_css
 
 
 class ForwardRequestHandler(tornado.web.RequestHandler):
@@ -33,9 +33,16 @@ class ForwardRequestHandler(tornado.web.RequestHandler):
             else:
                 self.set_status(response.code)
                 for header in response.headers:
-                    # 防止gzip
-                    if header not in ['Content-Encoding', 'Content-Length']:
+                    if header not in [
+                        'Content-Encoding', 'Content-Length',  # 防止gzip
+                        'Etag', 'Expires', 'Last-Modified'  # 防止缓存
+                    ]:
                         self.set_header(header, response.headers.get(header))
+
+                    # 防止缓存
+                    self.set_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                    self.set_header('Pragma', 'no-cache')
+                    self.set_header('Expires', '0')
 
                     # 多个Set-Cookie会在response.headers中被合并，这还原成多个Set-Cookie
                     if header == 'Set-Cookie':
@@ -51,7 +58,9 @@ class ForwardRequestHandler(tornado.web.RequestHandler):
                 if response.body:
                     content_type = response.headers.get('Content-Type', '')
                     if content_type and 'text/html' in content_type:
-                        body = response.body.replace('</body>', RELOADER_TAG + '\n</body>')
+                        body = process_html(response.body)
+                    elif content_type and 'text/css' in content_type:
+                        body = process_css(response.body)
                     else:
                         body = response.body
 
@@ -62,7 +71,7 @@ class ForwardRequestHandler(tornado.web.RequestHandler):
         headers = self.request.headers
         headers['Host'] = self.forward_host
 
-        for key in ['If-Modified-Since', 'If-None-Match', 'Expires']:
+        for key in ['If-Modified-Since', 'If-None-Match', 'Expires', 'Cache-Control']:
             if key in headers:
                 del headers[key]
 

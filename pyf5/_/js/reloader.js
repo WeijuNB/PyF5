@@ -161,6 +161,7 @@
     window._F5 = {
         UrlUtils: UrlUtils,
         handleChanges: handleChanges,
+        updateCSS: updateCSS,
         refresh: refresh
     };
 
@@ -192,58 +193,120 @@
         return null;
     }
 
-    function findLINKs(path) {
-        // url可以是完整的URL或者部分路径
-        var href, parts, links, link, url,
-            ret_links=[];
-        url = UrlUtils.parseUrl(path);
+    function destroyLessCache() {
+        if (!window.localStorage || !less) {
+            return;
+        }
+        var host = window.location.host;
+        var protocol = window.location.protocol;
+        var keyPrefix = protocol + '//' + host;
 
-        links = document.getElementsByTagName('link');
-        if (!path)
-            return links;
-        if (links.length == 0)
-            return [];
-        for (var i = 0; i < links.length; i ++) {
-            link = links[i];
-            href = UrlUtils.parseUrl(UrlUtils.makeUrlAbsolute(link.href, location.href));
-            if (href.hrefNoSearch == url.hrefNoSearch ||
-                href.pathname == url.pathname ||
-                href.filename == url.filename)
-            {
-                ret_links.push(link);
+        for (var key in window.localStorage) {
+            if (key.indexOf(keyPrefix) === 0 && key.toLowerCase().indexOf('.less') > -1) {
+                delete window.localStorage[key];
             }
         }
-        return ret_links;
     }
 
-    function updateStyleSheets(path) {
-        var links, href, hasLess = false;
-        links = findLINKs(path);
-        if (links.length == 0) {
-            refresh();
+    function replaceTimeStamp(url) {
+        if (url.indexOf('_=') > -1) {
+            url = url.replace(/_=[\d\.]+/, '_=' + Math.random());
         } else {
-            $(links).each(function(i, link) {
-                href = link.href || '';
-                if (href.indexOf('_f5=') > -1) {
-                    href = href.replace(/_f5=[\d\.]+/, '_f5=' + Math.random());
-                } else {
-                    if (href.indexOf('?') > -1) {
-                        href = href + '&_f5=' + Math.random();
-                    } else {
-                        href = href + '?_f5=' + Math.random();
+            if (url.indexOf('?') > -1) {
+                url = url + '&_=' + Math.random();
+            } else {
+                url = url + '?_=' + Math.random();
+            }
+        }
+        return url;
+    }
+
+    function isSameResource(p1, p2) {
+        return p1 && p2 && UrlUtils.parseUrl(p1).filename == UrlUtils.parseUrl(p2).filename
+    }
+
+    function updateCSS(path) {
+        var found = false;
+        $('link').each(function (i, link) {
+            var href = link.href || '';
+            var ext = UrlUtils.getFileExt(href);
+
+            if (ext == '.css') {
+                if (isSameResource(href, path)) {
+                    href = replaceTimeStamp(href)
+
+                    $(link).clone().attr('href', href).insertAfter(link);
+                    $(link).remove();
+
+                    found = true;
+                }
+            }
+        });
+
+        if (!path) {
+            found = true;
+        }
+
+        // check if @import
+        if (!found) {
+            for (var i = 0; i < document.styleSheets.length; i ++) {
+                var styleSheet = document.styleSheets[i];
+                var li = styleSheet.cssRules || styleSheet.imports || [];
+                console.log(styleSheet.href);
+                console.log(li);
+                console.log(li.length);
+
+                // <= ie8时，imports如果长度为0，会报没有权限
+                try {
+                    var l = li.length;
+                } catch (e) {
+                    li = [];
+                }
+
+                for (var j = 0; j < li.length; j ++) {
+                    var rule = li[j];
+                    if (rule.href) {
+                        if (isSameResource(rule.href, path)) {
+                            return updateCSS(styleSheet.href)
+                        }
                     }
                 }
-                link.href = href;
-                if (UrlUtils.getFileExt(href) == '.less') {
-                    hasLess = true;
-                }
-            });
-            if (hasLess && window.less && window.less.refresh) {
-                window.less.refresh();
             }
         }
     }
 
+    function updateAllLESS() {
+        var found = false;
+        $('link').each(function (i, link) {
+            var href = link.href || '';
+            var ext = UrlUtils.getFileExt(href);
+            if (ext == '.less') {
+                link.href = replaceTimeStamp(href);
+            }
+        });
+
+        $('style').each(function (i, style) {
+            if (style.id.indexOf('less:') > -1) {
+                $(style).remove();
+            }
+        });
+
+        if (window.less && window.less.refresh) {
+            destroyLessCache();
+            window.less.refresh();
+        }
+    }
+
+    function findScript(path) {
+        var targetScript = null;
+        $('script').each(function (i, script) {
+            if (isSameResource(script.src, path)) {
+                targetScript = script;
+                return false;
+            }
+        });
+        return targetScript;
+    }
 
     function restoreScrollPosition() {
         var y = cookie('__F5ScrollY');
@@ -271,7 +334,7 @@
         $.getScript(url)
             .fail(function () {
                 if (retryCount >= MAX_RETRY) {
-                    alert('和服务器失去联系，停止自动刷新');
+                    alert('和[F5]失去联系，停止自动刷新');
                 } else {
                     retryCount += 1;
                     queryChanges();
@@ -298,29 +361,27 @@
         $(changes).each(function (i, change) {
             var path = change.path;
             var ext = UrlUtils.getFileExt(path);
-            if (ext == '.css' || ext == '.less') {
-                updateStyleSheets(path);
-            } else {
+
+            if (ext == '.css') {
+                updateCSS(path);
+            } else if (ext == '.less') {
+                updateAllLESS();
+            } else if (ext == '.coffee' || ext == '.js') {
+                if (findScript(path)) {
+                    refresh();
+                }
+            }
+            else {
                 refresh();
             }
         });
     }
 
-    function checkAliveAndRefresh() {
-        var api_url = f5RootUrl + 'api/url/checkAlive' +
-            '?url=' + encodeURIComponent(location.href) +
-            '&callback=_F5.refresh';
-        setTimeout(function () {
-            $.getScript(api_url)
-                .fail(function() {
-                    refresh();
-                });
-        }, 1);
-    }
-
     $(function () {
-        if (isIE())
-            updateStyleSheets();
+        if (isIE()) {
+            updateCSS();
+            updateAllLESS();
+        }
         setTimeout(function () {
             restoreScrollPosition();
             queryChanges();

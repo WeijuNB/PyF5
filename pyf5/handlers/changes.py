@@ -26,7 +26,6 @@ class ChangeRequestHandler(RequestHandler):
         self.callback_name = self.get_argument('callback', '_F5.handleChanges')
         self.delay = int(self.get_argument('delay', 20))
         self.query_time = float(self.get_argument('ts', time.time()))
-        print '+ handler:', self
 
     @asynchronous
     def get(self, *args, **kwargs):

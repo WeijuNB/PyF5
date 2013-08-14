@@ -1,12 +1,14 @@
 #coding:utf-8
 from collections import namedtuple
 import os
+import subprocess
 import time
 from tornado import ioloop
 from watchdog.events import FileSystemEventHandler, EVENT_TYPE_MOVED, EVENT_TYPE_DELETED, EVENT_TYPE_CREATED
 from watchdog.observers import Observer
 from models import Change
-from utils import get_rel_path, path_is_parent
+from settings import DEFAULT_MUTE_LIST
+from utils import get_rel_path, path_is_parent, normalize_path, module_path
 
 
 class ChangesWatcher(FileSystemEventHandler):
@@ -21,7 +23,7 @@ class ChangesWatcher(FileSystemEventHandler):
 
     def observe(self, path, mute_list=None):
         self.path = path
-        self.mute_list = mute_list or []
+        self.mute_list = (mute_list or []) + DEFAULT_MUTE_LIST
         self.observer.unschedule_all()
         self.observer.schedule(self, self.path, recursive=True)
 
@@ -51,12 +53,42 @@ class ChangesWatcher(FileSystemEventHandler):
         else:
             self.changes.append(change)
             print '+  ', change
+            self.compile_if_necessary(change)
 
         ioloop.IOLoop.instance().add_callback(lambda: self.remove_outdated_changes(30))
+
+    def compile_if_necessary(self, change):
+        if change.type == EVENT_TYPE_DELETED:
+            return
+
+        abs_path = normalize_path(os.path.join(self.path, change.path))
+        base_path, ext = os.path.splitext(abs_path)
+        ext = ext.lower()
+
+        if ext not in['.less', '.coffee']:
+            return
+
+        begin_time = time.time()
+        os.chdir(module_path())
+        if ext == '.less':
+            output_path = base_path + '.css'
+            cmd = 'bundled/node.exe bundled/less/bin/lessc %s %s' % (abs_path, output_path)
+        elif ext == '.coffee':
+            output_path = base_path + '.js'
+            cmd = 'bundled/node.exe bundled/coffee/bin/coffee --compile %s' % (abs_path, )
+
+        os.system(cmd.replace('/', '\\'))
+        print 'compiled:', change.path, time.time() - begin_time, 'seconds'
+
 
     def on_any_event(self, event):
         if event.is_directory:
             return
+
+        # 暂停文件变更的上报
+        loop = ioloop.IOLoop.instance()
+        if self.changes_timer:
+            ioloop.IOLoop.instance().remove_timeout(self.changes_timer)
 
         now = time.time()
         src_relative_path = get_rel_path(event.src_path, self.path)
@@ -68,16 +100,7 @@ class ChangesWatcher(FileSystemEventHandler):
         else:
             self.add_pure_change(Change(timestamp=now, path=src_relative_path, type=event.event_type))
 
-        try:
-            self.notify_changes_with_delay()
-        except RuntimeError:
-            print 'ioloop.add_callback failed'
-
-    def notify_changes_with_delay(self):
-        loop = ioloop.IOLoop.instance()
-        if self.changes_timer:
-            loop.remove_timeout(self.changes_timer)
-
+        # 延迟0.1秒上报变更，防止有些事件连续发生时错过
         if self.changes_handler and callable(self.changes_handler):
             self.changes_timer = loop.add_timeout(time.time() + 0.1, self.changes_handler)
 
@@ -89,7 +112,7 @@ class ChangesWatcher(FileSystemEventHandler):
         for old_change in self.changes[::-1]:
             if old_change.path != change.path:
                 continue
-            if change.timestamp - old_change.timestamp > 0.1:
+            if change.timestamp - old_change.timestamp > 1:
                 break
 
             if change.type == EVENT_TYPE_DELETED:
