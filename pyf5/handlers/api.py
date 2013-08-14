@@ -3,11 +3,14 @@ from functools import partial
 import json
 import socket
 import time
-from tornado import gen, ioloop
+
+from tornado import ioloop
 from tornado.httpclient import AsyncHTTPClient
 from tornado.web import RequestHandler, asynchronous, os
+
+from pyf5.settings import CONFIG_PATH
 from pyf5.models import Project
-from pyf5.utils import get_rel_path, jsonable, config_path, normalize_path, path_is_parent
+from pyf5.utils import jsonable, normalize_path
 
 
 PATH_NOT_EXISTS = 'PATH_NOT_EXISTS'
@@ -144,12 +147,11 @@ class OSAPI(APIRequestHandler):
 
 class ProjectAPI(APIRequestHandler):
     def setup(self):
-        self.config_path = config_path()
         self.config = self.application.config
         self.projects = self.config.projects
 
     def _save_config(self):
-        self.application.config.save(self.config_path)
+        self.application.config.save(CONFIG_PATH)
 
     def _get_path_argument(self, argument_name, ensure_exists=False):
         path = self.get_argument(argument_name, '')

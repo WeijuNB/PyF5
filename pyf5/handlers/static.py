@@ -7,13 +7,14 @@ import gc
 
 from tornado.web import StaticFileHandler, RequestHandler, HTTPError
 
-from pyf5.handlers.contents import process_html, HTML_EXTENSIONS, SPECIAL_EXTENSIONS,  CSS_EXTENSIONS, process_css
-from pyf5.utils import get_rel_path, we_are_frozen, normalize_path
-from pyf5.settings import RELOADER_TAG
+from pyf5.settings import CURRENT_MODE, PRODUCTION_MODE
+from pyf5.handlers.helpers import process_html, HTML_EXTENSIONS, SPECIAL_EXTENSIONS,  CSS_EXTENSIONS, process_css
+from pyf5.utils import get_rel_path, normalize_path
+
 
 assets_zip_file = None
 VFS = None
-if we_are_frozen():
+if CURRENT_MODE == PRODUCTION_MODE:
     from pyf5.zfs import ZipFileSystem
     from pyf5.assets import assets_zip64
     assets_zip_file = StringIO(base64.decodestring(assets_zip64))
@@ -67,7 +68,7 @@ class AssetsHandler(StaticFileHandler):
         return absolute_path
 
 
-class StaticSiteHandler(StaticFileHandler):
+class ManagedFileHandler(StaticFileHandler):
     def should_return_304(self):
         return False
 

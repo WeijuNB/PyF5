@@ -1,14 +1,14 @@
 #coding:utf-8
-from collections import namedtuple
 import os
-import subprocess
 import time
+
 from tornado import ioloop
 from watchdog.events import FileSystemEventHandler, EVENT_TYPE_MOVED, EVENT_TYPE_DELETED, EVENT_TYPE_CREATED
 from watchdog.observers import Observer
-from models import Change
-from settings import DEFAULT_MUTE_LIST
-from utils import get_rel_path, path_is_parent, normalize_path, module_path
+
+from pyf5.models import Change
+from pyf5.settings import DEFAULT_MUTE_LIST, APP_FOLDER
+from pyf5.utils import get_rel_path, path_is_parent, normalize_path
 
 
 class ChangesWatcher(FileSystemEventHandler):
@@ -41,7 +41,7 @@ class ChangesWatcher(FileSystemEventHandler):
         # 如果是黑名单及黑名单子目录的change，则跳过
         for black_path in self.mute_list:
             if path_is_parent(black_path, change.path):
-                print '...', change
+                print '...', change.type, change.path
                 return
 
         # 寻找当前change对应的垃圾change，找到后删除；未找到则添加当前change
@@ -49,10 +49,10 @@ class ChangesWatcher(FileSystemEventHandler):
         if trash_changes:
             for change in trash_changes:
                 self.changes.remove(change)
-                print '-  ', change
+                print '-  ', change.type, change.path
         else:
             self.changes.append(change)
-            print '+  ', change
+            print '+  ', change.type, change.path
             self.compile_if_necessary(change)
 
         ioloop.IOLoop.instance().add_callback(lambda: self.remove_outdated_changes(30))
@@ -69,7 +69,7 @@ class ChangesWatcher(FileSystemEventHandler):
             return
 
         begin_time = time.time()
-        os.chdir(module_path())
+        os.chdir(APP_FOLDER)
         if ext == '.less':
             output_path = base_path + '.css'
             cmd = 'bundled/node.exe bundled/less/bin/lessc %s %s' % (abs_path, output_path)
@@ -78,8 +78,7 @@ class ChangesWatcher(FileSystemEventHandler):
             cmd = 'bundled/node.exe bundled/coffee/bin/coffee --compile %s' % (abs_path, )
 
         os.system(cmd.replace('/', '\\'))
-        print 'compiled:', change.path, time.time() - begin_time, 'seconds'
-
+        print '>>>>>>:', change.path, time.time() - begin_time, 'seconds'
 
     def on_any_event(self, event):
         if event.is_directory:

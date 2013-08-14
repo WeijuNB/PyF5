@@ -9,7 +9,6 @@ from collections import namedtuple
 # Change = namedtuple('Change', 'time, path, type')
 from schematics.types.compound import ModelType, ListType
 from watchdog.events import EVENT_TYPE_MOVED, EVENT_TYPE_DELETED, EVENT_TYPE_CREATED, EVENT_TYPE_MODIFIED, os
-from utils import config_path
 
 
 class BaseModel(Model):

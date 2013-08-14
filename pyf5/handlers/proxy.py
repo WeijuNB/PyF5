@@ -4,7 +4,7 @@ import tornado
 import tornado.httpclient
 from tornado.web import asynchronous
 
-from pyf5.handlers import process_html, process_css
+from pyf5.handlers.helpers import process_html, process_css
 
 
 class ForwardRequestHandler(tornado.web.RequestHandler):

@@ -55,5 +55,4 @@ class ChangeRequestHandler(RequestHandler):
 
         self.finish()
         self.handlers.remove(self)
-        print '- handler:', self, time.time()
         print 'ret:', ret

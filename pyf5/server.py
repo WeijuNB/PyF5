@@ -1,29 +1,22 @@
 #coding:utf-8
 import os
-import cPickle
-import time
-from tornado import ioloop
 
 from tornado.web import Application, RedirectHandler, StaticFileHandler
-from handlers.changes import ChangeRequestHandler
-from handlers.proxy import ForwardRequestHandler
-from settings import VERSION
-from watcher import ChangesWatcher
-from models import Config
 
-from pyf5.utils import module_path, config_path, get_current_mode, FREEZE_MODE, PACKAGE_MODE, DEVELOP_MODE
-from pyf5.handlers import AssetsHandler, StaticSiteHandler, APIRequestHandler, MarkDownHandler
+from pyf5.settings import CURRENT_MODE, VERSION, PRODUCTION_MODE, DEVELOPMENT_MODE, RESOURCE_FOLDER, CONFIG_PATH, APP_FOLDER
+from pyf5.models import Config
+from pyf5.watcher import ChangesWatcher
+from pyf5.handlers.api import APIRequestHandler
+from pyf5.handlers.static import MarkDownHandler, ManagedFileHandler
+from pyf5.handlers.proxy import ForwardRequestHandler
+from pyf5.handlers.changes import ChangeRequestHandler
 
-MODE = get_current_mode()
-if MODE == FREEZE_MODE:
-    # freeze 模式下面，使用打包的Assets文件（默认）
-    pass
-elif MODE == PACKAGE_MODE:
-    # 源代码发布出去以后，使用最普通的StaticFileHandler
-    AssetsHandler = StaticFileHandler
-elif MODE == DEVELOP_MODE:
-    # 开发中，使用会自动更新的StaticSiteHandler
-    AssetsHandler = StaticSiteHandler
+
+# will live reload F5 dashboard
+if CURRENT_MODE == DEVELOPMENT_MODE:
+    ResourceHandler = ManagedFileHandler
+if CURRENT_MODE == PRODUCTION_MODE:
+    ResourceHandler = StaticFileHandler
 
 
 class F5Server(Application):
@@ -31,14 +24,14 @@ class F5Server(Application):
         handlers = [
             (r"/_/api/changes", ChangeRequestHandler),
             (r"/_/api/(.*)", APIRequestHandler),
-            (r"/_/(.+)", AssetsHandler, {"path": os.path.join(module_path(), '_')}),
+            (r"/_/(.+)", ResourceHandler, {"path": RESOURCE_FOLDER}),
             (r"/_/?", RedirectHandler, {'url': '/_/index.html?ver=' + VERSION}),
             # (r"/", RedirectHandler, {'url': '/_/index.html'}),
         ]
         self._handlers_count = len(handlers)
         settings = {
             'debug': True,
-            'template_path': os.path.join(module_path(), '_'),
+            'template_path': RESOURCE_FOLDER,
             'version': VERSION
         }
 
@@ -56,12 +49,11 @@ class F5Server(Application):
     @property
     def config(self):
         if not hasattr(self, '_config'):
-            path = config_path()
-            if os.path.exists(path):
-                self._config = Config.load(path)
+            if os.path.exists(CONFIG_PATH):
+                self._config = Config.load(CONFIG_PATH)
             else:
                 self._config = Config()
-                self._config.path = path
+                self._config.path = CONFIG_PATH
         return self._config
 
     @property
@@ -93,14 +85,14 @@ class F5Server(Application):
             self.add_handlers(".*$", [
                 (r"/", RedirectHandler, {'url': '/_/index.html?ver=' + VERSION}),
                 (r"/(.*)\.md", MarkDownHandler),
-                (r"/(.*)", StaticSiteHandler, {"path": target_project.path}),
+                (r"/(.*)", ManagedFileHandler, {"path": target_project.path}),
             ])
         handle = self.handlers.pop(0)
         self.handlers.insert(self._handlers_count, handle)
 
         self.watcher.observe(target_project.path, target_project.muteList)
-        if MODE == DEVELOP_MODE:
-            self.watcher.observer.schedule(self.watcher, module_path(), recursive=True)
+        if CURRENT_MODE == DEVELOPMENT_MODE:
+            self.watcher.observer.schedule(self.watcher, APP_FOLDER, recursive=True)
 
     def current_project_path(self):
         if not self.project:
