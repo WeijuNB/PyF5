@@ -91,11 +91,7 @@ class APIRequestHandler(RequestHandler):
             ret = json_data
         self.write(ret)
         self.finish()
-        print 'API:', '======================='
-        print self.request.uri
-        print self.request.arguments
-        print ret
-        print '===================='
+        print 'API:', self.request.uri, self.request.arguments
 
 
 class OSAPI(APIRequestHandler):
@@ -172,7 +168,7 @@ class ProjectAPI(APIRequestHandler):
 
     def list(self):
         for project in self.projects:
-            project.active = project == self.application.project
+            project.active = project == self.application.active_project
         self.respond_success({'projects': self.projects})
 
     def add(self):

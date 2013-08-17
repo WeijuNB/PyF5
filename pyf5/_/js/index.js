@@ -33,14 +33,14 @@
     });
     this.isMuted = ko.computed(function() {
       var mutePath, _i, _len, _ref;
-      if (!project.muteList()) {
-        false;
+      if (!project.muteList().length) {
+        return false;
       }
       _ref = project.muteList();
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         mutePath = _ref[_i];
         if (_this.absolutePath() === joinPath(project.path(), mutePath)) {
-          true;
+          return true;
         }
       }
       return false;
@@ -55,14 +55,14 @@
     this.unmute = function() {
       var _ref;
       if (_ref = _this.relativePath(), __indexOf.call(project.muteList(), _ref) >= 0) {
-        project.muteList.remove(_this.relativepath());
+        project.muteList.remove(_this.relativePath());
         return project.save();
       }
     };
     this.onClick = function() {
       if (_this.type() === 'DIR') {
         project.currentFolder(_this.relativePath());
-        false;
+        return false;
       }
       return true;
     };
@@ -84,14 +84,31 @@
     this.root = root;
     this.path = ko.observable("");
     this.active = ko.observable(false);
+    this.active.subscribe(function(newValue) {
+      var project, _i, _len, _ref;
+      console.log(_this.path(), 'active', newValue);
+      if (newValue === true) {
+        _ref = root.projects();
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          project = _ref[_i];
+          if (project !== _this && project.active()) {
+            project.active(false);
+          }
+        }
+        if (!_this.files().length) {
+          return _this.currentFolder('');
+        }
+      }
+    });
     this.muteList = ko.observableArray([]);
     this.targetHost = ko.observable('');
     this.domains = ko.observableArray([]);
     this.activeDomain = ko.observable('127.0.0.1');
+    this.compileLess = ko.observable(false);
+    this.compileCoffee = ko.observable(false);
     this.activeDomains = ko.observableArray(['127.0.0.1']);
     this.activeDomains.subscribe(function(newValue) {
       _this.activeDomain(newValue[0]);
-      setTimeout(_this.save, 100);
       return _this.QRCodeFile(_this.QRCodeFile());
     });
     this.allHosts = ko.computed(function() {
@@ -115,7 +132,8 @@
             return alert('域名已存在');
           } else {
             _this.domains.unshift(domain);
-            return _this.activeDomains([domain]);
+            _this.activeDomains([domain]);
+            return _this.save();
           }
         }
       }
@@ -123,7 +141,8 @@
     this.clickRemoveDomain = function(item, event) {
       _this.domains.remove(_this.activeDomain());
       if (_this.activeHosts().length) {
-        return _this.activeDomains([_this.allHosts()[0]]);
+        _this.activeDomains([_this.allHosts()[0]]);
+        return _this.save();
       }
     };
     this.showSettings = ko.observable($.cookie('hideSettings') !== 'true');
@@ -153,17 +172,19 @@
     this.currentFolder = ko.observable('');
     this.currentFolder.subscribe(function(relativePath) {
       var part, parts, relativeParts, _i, _len;
-      _this.folderSegments.removeAll();
-      parts = relativePath.split('/');
-      relativeParts = [];
-      for (_i = 0, _len = parts.length; _i < _len; _i++) {
-        part = parts[_i];
-        relativeParts.push(part);
-        if (part) {
-          _this.folderSegments.push(new FolderSegment(part, relativeParts.join('/'), _this));
+      if (_this.active()) {
+        _this.folderSegments.removeAll();
+        parts = relativePath.split('/');
+        relativeParts = [];
+        for (_i = 0, _len = parts.length; _i < _len; _i++) {
+          part = parts[_i];
+          relativeParts.push(part);
+          if (part) {
+            _this.folderSegments.push(new FolderSegment(part, relativeParts.join('/'), _this));
+          }
         }
+        return _this.queryFileList(joinPath(_this.path(), relativePath));
       }
-      return _this.queryFileList(joinPath(_this.path(), relativePath));
     });
     this.currentFolder.extend({
       notify: 'always'
@@ -210,16 +231,34 @@
       });
     };
     this.showQRCode = function(item, event) {
-      return this.QRCodeFile(item);
+      return _this.QRCodeFile(item);
+    };
+    this.onClick = function(item, event) {
+      var prevActiveProject;
+      prevActiveProject = root.activeProject();
+      if (prevActiveProject) {
+        prevActiveProject.active(false);
+        prevActiveProject.save();
+      }
+      _this.active(true);
+      return _this.save();
+    };
+    this.onCompileCheckboxClick = function(item, event) {
+      if (event.target.tagName.toLowerCase() === 'label') {
+        setTimeout(_this.save, 100);
+      }
+      return true;
     };
     this.load = function(data) {
       _this.path(data.path);
-      _this.active((data.active != null) || false);
+      _this.active(!!data.active);
       _this.muteList(data.muteList || []);
       _this.targetHost(data.targetHost || "");
       _this.domains(data.domains || []);
       _this.activeDomain(data.activeDomain || '127.0.0.1');
-      return _this.activeDomains([_this.activeDomain()]);
+      _this.activeDomains([_this.activeDomain()]);
+      _this.compileLess(!!data.compileLess);
+      return _this.compileCoffee(!!data.compileCoffee);
     };
     this.save = function() {
       return API.project.update(_this);
@@ -231,7 +270,9 @@
         muteList: _this.muteList(),
         targetHost: _this.targetHost(),
         domains: _this.domains(),
-        activeDomain: _this.activeDomain()
+        activeDomain: _this.activeDomain(),
+        compileLess: _this.compileLess(),
+        compileCoffee: _this.compileCoffee()
       };
     };
     if (data) {
@@ -250,26 +291,17 @@
         return $('#projects .op a').tooltip();
       }, 500);
     });
-    this.activeProject = ko.observable(null);
-    this.activeProject.subscribe(function(project) {
-      var _i, _len, _project, _ref;
-      if (project) {
-        if (!project.active()) {
-          project.active(true);
-          project.save();
-        }
-        if (!project.files().length) {
-          project.currentFolder('');
-        }
-      }
+    this.activeProject = ko.computed(function() {
+      var project, _i, _len, _ref;
       _ref = _this.projects();
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        _project = _ref[_i];
-        if (_project && _project !== project && _project.active()) {
-          _project.active(false);
-          _project.save();
+        project = _ref[_i];
+        if (project.active()) {
+          return project;
         }
       }
+    });
+    this.activeProject.subscribe(function(project) {
       return setTimeout(function() {
         return $('#project [data-toggle=tooltip]').tooltip();
       }, 500);
@@ -307,34 +339,23 @@
         _results = [];
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           projectData = _ref[_i];
-          project = _this.loadProjectData(projectData);
-          if (project.active() && project !== _this.activeProject()) {
-            _results.push(_this.activeProject(project));
-          } else {
-            _results.push(void 0);
-          }
+          _results.push(project = _this.loadProjectData(projectData));
         }
         return _results;
       });
     };
     this.removeProject = function(project) {
       _this.projects.remove(project);
-      API.project.remove(project.path());
-      if (_this.activeProject() === project) {
-        return _this.activeProject(null);
-      }
+      return API.project.remove(project.path());
     };
     this.addProjectWithPath = function(path) {
       return API.project.add(path, function(resp) {
         _this.loadProjectData(resp.project);
-        if (_this.projects().length === 1 && !_this.activeProject()) {
-          _this.activeProject(_this.projects()[0]);
+        if (_this.projects().length === 1) {
+          _this.projects().active(true);
         }
         return $('#new-path-input').val('');
       });
-    };
-    this.onSelectProject = function(project) {
-      return _this.activeProject(project);
     };
     this.askRemoveProject = function(project) {
       if (confirm('是否确认【删除】该项目?')) {

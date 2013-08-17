@@ -24,7 +24,7 @@ window.API =
             postAPI 'project/remove', {path: projectPath}, sh, eh
         update: (project, sh, eh) ->
             projectData = project.export()
-            postAPI 'project/list', {project: JSON.stringify projectData}, sh, eh
+            postAPI 'project/update', {project: JSON.stringify projectData}, sh, eh
 
     os:
         f5Version: (sh, eh) ->

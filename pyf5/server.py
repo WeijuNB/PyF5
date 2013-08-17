@@ -37,13 +37,13 @@ class F5Server(Application):
 
         Application.__init__(self, handlers, ".*$", None, False, **settings)
 
-        if self.project:
-            self.load_project(self.project)
+        if self.active_project:
+            self.load_project(self.active_project)
 
     @property
     def watcher(self):
         if not hasattr(self, '_watcher'):
-            self._watcher = ChangesWatcher(changes_handler=self.project_file_changed)
+            self._watcher = ChangesWatcher(self)
         return self._watcher
 
     @property
@@ -57,7 +57,7 @@ class F5Server(Application):
         return self._config
 
     @property
-    def project(self):
+    def active_project(self):
         for project in self.config.projects:
             if project.active:
                 return project
@@ -95,9 +95,9 @@ class F5Server(Application):
             self.watcher.observer.schedule(self.watcher, APP_FOLDER, recursive=True)
 
     def current_project_path(self):
-        if not self.project:
+        if not self.active_project:
             return None
-        return self.project.path
+        return self.active_project.path
 
     def project_file_changed(self):
         ChangeRequestHandler.broadcast_changes()

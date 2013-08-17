@@ -12,12 +12,12 @@ from pyf5.utils import get_rel_path, path_is_parent, normalize_path
 
 
 class ChangesWatcher(FileSystemEventHandler):
-    def __init__(self, changes_handler=None):
+    def __init__(self, application):
+        self.application = application
         self.observer = Observer()
         self.changes = []
         self.mute_list = []
         self.path = None
-        self.changes_handler = changes_handler
         self.changes_timer = None
         self.observer.start()
 
@@ -68,23 +68,37 @@ class ChangesWatcher(FileSystemEventHandler):
         if ext not in['.less', '.coffee']:
             return
 
+        if not self.application.active_project:
+            return
+
+        active_project = self.application.active_project
         begin_time = time.time()
         os.chdir(APP_FOLDER)
         if ext == '.less':
-            output_path = base_path + '.css'
-            cmd = 'bundled/node.exe bundled/less/bin/lessc %s %s' % (abs_path, output_path)
+            if active_project.compileLess:
+                output_path = base_path + '.css'
+                cmd = 'bundled/node.exe bundled/less/bin/lessc %s %s' % (abs_path, output_path)
+                os.system(cmd.replace('/', '\\'))
+                print 'compile:', change.path, time.time() - begin_time, 'seconds'
+            else:
+                print 'skip compile', change.path, '(setting is off)'
         elif ext == '.coffee':
-            output_path = base_path + '.js'
-            cmd = 'bundled/node.exe bundled/coffee/bin/coffee --compile %s' % (abs_path, )
+            if active_project.compileCoffee:
+                output_path = base_path + '.js'
+                cmd = 'bundled/node.exe bundled/coffee/bin/coffee --compile %s' % (abs_path, )
+                os.system(cmd.replace('/', '\\'))
+                print 'compile:', change.path, time.time() - begin_time, 'seconds'
+            else:
+                print 'skip compile', change.path, '(setting is off)'
 
-        os.system(cmd.replace('/', '\\'))
-        print '>>>>>>:', change.path, time.time() - begin_time, 'seconds'
+
+
 
     def on_any_event(self, event):
         if event.is_directory:
             return
 
-        # 暂停文件变更的上报
+        # 暂停文件变更的上报, 以免中途编译占用太长时间，而将事件提前返回
         loop = ioloop.IOLoop.instance()
         if self.changes_timer:
             ioloop.IOLoop.instance().remove_timeout(self.changes_timer)
@@ -100,8 +114,7 @@ class ChangesWatcher(FileSystemEventHandler):
             self.add_pure_change(Change(timestamp=now, path=src_relative_path, type=event.event_type))
 
         # 延迟0.1秒上报变更，防止有些事件连续发生时错过
-        if self.changes_handler and callable(self.changes_handler):
-            self.changes_timer = loop.add_timeout(time.time() + 0.1, self.changes_handler)
+        self.changes_timer = loop.add_timeout(time.time() + 0.1, self.application.project_file_changed)
 
     def find_related_trash_changes(self, change):
         """ 寻找当前change之前短时间内的一些垃圾change

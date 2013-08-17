@@ -9,22 +9,22 @@ FileModel = (data, project) ->
     @type = ko.observable data['type']
     @absolutePath = ko.observable data['absolutePath']
 
-    @relativePath = ko.computed () =>
+    @relativePath = ko.computed =>
         relPath = @absolutePath().replace(project.path(), '')
         relPath = relPath.substr(1) if relPath and relPath[0] == '/'
 
-    @url = ko.computed () =>
+    @url = ko.computed =>
         root = project.root
         if root.port()
             "http://#{project.activeDomain()}:#{root.port()}/#{@relativePath()}"
         else
             "http://#{project.activeDomain()}/#{@relativePath()}"
 
-    @isMuted = ko.computed () =>
-        false if not project.muteList()
+    @isMuted = ko.computed =>
+        return false if not project.muteList().length
 
         for mutePath in project.muteList()
-            true if @absolutePath() == joinPath project.path(), mutePath
+            return true if @absolutePath() == joinPath(project.path(), mutePath)
         false
 
     @mute = =>
@@ -34,14 +34,14 @@ FileModel = (data, project) ->
 
     @unmute = =>
         if @relativePath() in project.muteList()
-            project.muteList.remove @relativepath()
+            project.muteList.remove @relativePath()
             project.save()
 
     @onClick = =>
         if @type() is 'DIR'
             project.currentFolder @relativePath()
-            false
-        true
+            return false
+        return true
     @
 
 
@@ -60,16 +60,25 @@ ProjectModel = (data, root) ->
     # 和服务器对应的数据结构-----------------------------------------
     @path = ko.observable ""
     @active = ko.observable false
+    @active.subscribe (newValue) =>
+        console.log @path(), 'active', newValue
+        if newValue is true
+            for project in root.projects()
+                if project isnt @ and project.active()
+                    project.active(false)
+            if not @files().length
+                @currentFolder('')
     @muteList = ko.observableArray []
     @targetHost = ko.observable ''
     @domains = ko.observableArray []
     @activeDomain = ko.observable '127.0.0.1'
+    @compileLess = ko.observable false
+    @compileCoffee = ko.observable false
 
     # 域名切换相关--------------------------------------------------
     @activeDomains = ko.observableArray ['127.0.0.1']
     @activeDomains.subscribe (newValue) =>
         @activeDomain newValue[0]
-        setTimeout @save, 100  # 这里的save会和其他save冲突，导致后发先至引起数据错乱，所以暂时丑陋地解决一下
         @QRCodeFile @QRCodeFile()
 
     @allHosts = ko.computed =>
@@ -92,11 +101,13 @@ ProjectModel = (data, root) ->
                 else
                     @domains.unshift domain
                     @activeDomains [domain]
+                    @save()
 
     @clickRemoveDomain = (item, event) =>
         @domains.remove @activeDomain()
         if @activeHosts().length
             @activeDomains [@allHosts()[0]]
+            @save()
 
     # settings ---------------------------------------------
     @showSettings = ko.observable $.cookie('hideSettings') != 'true'
@@ -129,14 +140,15 @@ ProjectModel = (data, root) ->
 
     @currentFolder = ko.observable ''
     @currentFolder.subscribe (relativePath) =>
-        @folderSegments.removeAll()
-        parts = relativePath.split('/')
-        relativeParts = []
-        for part in parts
-            relativeParts.push part
-            if part
-                @folderSegments.push(new FolderSegment(part, relativeParts.join('/'), @))
-        @queryFileList joinPath(@path(), relativePath)
+        if @active()
+            @folderSegments.removeAll()
+            parts = relativePath.split('/')
+            relativeParts = []
+            for part in parts
+                relativeParts.push part
+                if part
+                    @folderSegments.push(new FolderSegment(part, relativeParts.join('/'), @))
+            @queryFileList joinPath(@path(), relativePath)
     @currentFolder.extend notify:'always'  # 不论是否有修改，都发生subscribe
 
     @goRoot = ->
@@ -173,18 +185,34 @@ ProjectModel = (data, root) ->
             text:text
         )
 
-    @showQRCode = (item, event) ->
+    @showQRCode = (item, event) =>
         @QRCodeFile item
+
+    # event handlers
+    @onClick = (item, event) =>
+        prevActiveProject = root.activeProject()
+        if prevActiveProject
+            prevActiveProject.active(false)
+            prevActiveProject.save()
+        @active(true)
+        @save()
+
+    @onCompileCheckboxClick = (item, event) =>
+        if event.target.tagName.toLowerCase() == 'label'
+            setTimeout @save, 100
+        return true
 
     # save/load/export ----------------------------------
     @load = (data) =>
-        @path data.path
-        @active(data.active? or false)
+        @path(data.path)
+        @active(!!data.active)
         @muteList(data.muteList or [])
         @targetHost(data.targetHost or "")
         @domains(data.domains or [])
         @activeDomain(data.activeDomain or '127.0.0.1')
         @activeDomains([@activeDomain()])
+        @compileLess(!!data.compileLess)
+        @compileCoffee(!!data.compileCoffee)
 
     @save = =>
         API.project.update @
@@ -196,6 +224,8 @@ ProjectModel = (data, root) ->
         targetHost: @targetHost()
         domains: @domains()
         activeDomain: @activeDomain()
+        compileLess: @compileLess()
+        compileCoffee: @compileCoffee()
 
     @load(data) if data
     @
@@ -212,18 +242,11 @@ ViewModel = ->
             => $('#projects .op a').tooltip()
             500)
 
-    @activeProject = ko.observable null
+    @activeProject = ko.computed =>
+        for project in @projects()
+            return project if project.active()
+
     @activeProject.subscribe (project) =>
-        if project
-            if not project.active()
-                project.active true
-                project.save()
-            if not project.files().length
-                project.currentFolder ''
-        for _project in @projects()
-            if _project and _project != project and _project.active()
-                _project.active false
-                _project.save()
         setTimeout(
             => $('#project [data-toggle=tooltip]').tooltip()
             500)
@@ -249,21 +272,17 @@ ViewModel = ->
         API.project.list (data) =>
             for projectData in data['projects']
                 project = @loadProjectData projectData
-                @activeProject(project) if project.active() and project != @activeProject()
 
     @removeProject = (project) =>
         @projects.remove project
         API.project.remove project.path()
-        @activeProject(null) if @activeProject() == project
 
     @addProjectWithPath = (path) =>
         API.project.add path, (resp) =>
             @loadProjectData resp.project
-            @activeProject(@projects()[0]) if @projects().length == 1 and not @activeProject()
+            if @projects().length == 1
+                @projects().active(true)
             $('#new-path-input').val ''
-
-    @onSelectProject = (project) =>
-        @activeProject project
 
     @askRemoveProject = (project) =>
         @removeProject(project) if confirm '是否确认【删除】该项目?'

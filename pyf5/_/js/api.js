@@ -40,7 +40,7 @@
       update: function(project, sh, eh) {
         var projectData;
         projectData = project["export"]();
-        return postAPI('project/list', {
+        return postAPI('project/update', {
           project: JSON.stringify(projectData)
         }, sh, eh);
       }

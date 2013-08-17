@@ -14,7 +14,7 @@ from pyf5.utils import normalize_path
 
 class MarkDownHandler(RequestHandler):
     def get(self, *args, **kwargs):
-        root_path = self.application.project.path
+        root_path = self.application.active_project.path
         rel_path = self.request.path[1:]
         rel_path = unquote(rel_path).decode('utf-8')
         md_path = os.path.join(root_path, rel_path).replace('\\', '/')

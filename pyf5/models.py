@@ -45,6 +45,8 @@ class Project(BaseModel):
     targetHost = StringType()
     domains = ListType(StringType(), default=[])
     activeDomain = StringType()
+    compileLess = BooleanType(default=False)
+    compileCoffee = BooleanType(default=False)
 
 
 class Config(BaseModel):
