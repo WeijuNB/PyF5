@@ -3,7 +3,7 @@ import os
 import sys
 from pyf5.utils import config_path
 
-VERSION = '4.1.0.2'
+VERSION = '4.1.2'
 
 RELOADER_TAG = '<script id="_f5_script" src="/_/js/reloader.js"></script>'
 

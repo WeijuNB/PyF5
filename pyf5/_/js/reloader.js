@@ -317,7 +317,8 @@
     }
 
     function refresh() {
-        cookie('__F5ScrollY', $(window).scrollTop());
+        var scrollTop = document.documentElement.scrollTop || document.body.scrollTop
+        cookie('__F5ScrollY', scrollTop);
         location.reload();
     }
 

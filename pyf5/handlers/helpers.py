@@ -5,7 +5,7 @@ from pyf5.settings import RELOADER_TAG
 
 
 HTML_EXTENSIONS = ['.htm', '.html', '.shtml']
-CSS_EXTENSIONS = ['.css']
+CSS_EXTENSIONS = ['.css', '.less']
 
 SPECIAL_EXTENSIONS = HTML_EXTENSIONS + CSS_EXTENSIONS
 
