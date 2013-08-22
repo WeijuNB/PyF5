@@ -104,15 +104,24 @@ h3 {
   margin-top: 8px;
   padding: 3px 10px;
 }
-#project #pane-settings form {
-  font-size: 12px;
-  margin-bottom: 0px;
-}
-#project #pane-settings form .clear-target-host {
+#project #pane-settings .clear-target-host {
   display: inline-block;
   vertical-align: top;
   line-height: 30px;
   margin-left: 10px;
+}
+#project #pane-settings fieldset {
+  font-size: 12px;
+  margin-bottom: 0px;
+}
+#project #pane-settings fieldset p.muted i {
+  display: none;
+}
+#project #pane-settings fieldset p.text-success i {
+  display: inline-block;
+}
+#project #pane-settings #pane-settings-refresh .input-prepend.input-append {
+  margin-left: 3px;
 }
 #project #pane-files ul.breadcrumb {
   list-style: none;

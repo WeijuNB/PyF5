@@ -2,11 +2,7 @@
 import cPickle
 from schematics.models import Model
 from schematics.serialize import to_python
-from schematics.types import DateTimeType, StringType, FloatType, BooleanType
-
-from collections import namedtuple
-
-# Change = namedtuple('Change', 'time, path, type')
+from schematics.types import StringType, FloatType, BooleanType
 from schematics.types.compound import ModelType, ListType
 from watchdog.events import EVENT_TYPE_MOVED, EVENT_TYPE_DELETED, EVENT_TYPE_CREATED, EVENT_TYPE_MODIFIED, os
 
@@ -47,6 +43,7 @@ class Project(BaseModel):
     activeDomain = StringType()
     compileLess = BooleanType(default=False)
     compileCoffee = BooleanType(default=False)
+    delay = FloatType(default=0.0)
 
 
 class Config(BaseModel):

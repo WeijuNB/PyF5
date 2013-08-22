@@ -134,15 +134,31 @@ h1, h2, h3 {
 
   #pane-settings {
 
-    form {
+    .clear-target-host {
+      display: inline-block;
+      vertical-align: top;
+      line-height: 30px;
+      margin-left: 10px;
+    }
+
+    fieldset {
       font-size: 12px;
       margin-bottom: 0px;
 
-      .clear-target-host {
-        display: inline-block;
-        vertical-align: top;
-        line-height: 30px;
-        margin-left: 10px;
+      p {
+        &.muted i {
+          display: none;
+        }
+
+        &.text-success i {
+          display: inline-block;
+        }
+      }
+    }
+
+    #pane-settings-refresh {
+      .input-prepend.input-append {
+        margin-left: 3px;
       }
     }
   }

@@ -344,15 +344,18 @@
     }
 
     function handleChanges(data) {
-        var changes;
+        var changes, delay;
         retryCount = 0;
 
         trace(data);
         if (data['status'] == 'ok') {
             cookie('_F5TS', parseFloat(data['time']), {expires: 30});
             changes = data['changes'];
+            delay = (parseFloat(data['delay']) || 0) * 1000;
             if (changes.length > 0) {
-                updatePageWithChanges(changes);
+                setTimeout(function () {
+                    updatePageWithChanges(changes);
+                }, delay);
             }
             setTimeout(queryChanges, 100);
         }

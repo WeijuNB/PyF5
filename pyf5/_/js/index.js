@@ -106,6 +106,13 @@
     this.activeDomain = ko.observable('127.0.0.1');
     this.compileLess = ko.observable(false);
     this.compileCoffee = ko.observable(false);
+    this.delay = ko.observable(0.0);
+    this.delay.subscribe(function(newValue) {
+      if (parseFloat(newValue) !== newValue) {
+        _this.delay(parseFloat(newValue));
+        return _this.save();
+      }
+    });
     this.activeDomains = ko.observableArray(['127.0.0.1']);
     this.activeDomains.subscribe(function(newValue) {
       _this.activeDomain(newValue[0]);
@@ -258,7 +265,8 @@
       _this.activeDomain(data.activeDomain || '127.0.0.1');
       _this.activeDomains([_this.activeDomain()]);
       _this.compileLess(!!data.compileLess);
-      return _this.compileCoffee(!!data.compileCoffee);
+      _this.compileCoffee(!!data.compileCoffee);
+      return _this.delay(parseFloat(data.delay) || 0.0);
     };
     this.save = function() {
       return API.project.update(_this);
@@ -272,7 +280,8 @@
         domains: _this.domains(),
         activeDomain: _this.activeDomain(),
         compileLess: _this.compileLess(),
-        compileCoffee: _this.compileCoffee()
+        compileCoffee: _this.compileCoffee(),
+        delay: parseFloat(_this.delay())
       };
     };
     if (data) {

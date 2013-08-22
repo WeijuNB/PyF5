@@ -65,7 +65,7 @@
             </ul>
 
             <div class="tab-content">
-                <div class="tab-pane active" id="pane-files">
+                <div class="tab-pane" id="pane-files">
                     <ul class="breadcrumb">
                         <li>
                             <a href="javascript:"
@@ -111,15 +111,16 @@
                     </table>
                 </div>
 
-                <div class="tab-pane" id="pane-settings">
+                <div class="tab-pane active" id="pane-settings">
 
                     <ul class="nav nav-pills">
-                        <li class="active"><a href="#pane-settings-project" data-toggle="tab">项目设置</a></li>
+                        <li><a href="#pane-settings-project" data-toggle="tab">项目设置</a></li>
                         <li><a href="#pane-settings-compile" data-toggle="tab">自动编译</a></li>
+                        <li class="active"><a href="#pane-settings-refresh" data-toggle="tab">刷新设置</a></li>
                     </ul>
 
                     <div class="tab-content">
-                        <div class="tab-pane active" id="pane-settings-project">
+                        <div class="tab-pane" id="pane-settings-project">
                             <p>
                                 如果您的网站是<b>纯静态项目</b>，那么无需任何设置，只要点击文件列表中的网页就能直接使用
                             </p>
@@ -154,6 +155,7 @@
                                         <input type="checkbox" data-bind="checked:compileLess"> 开启自动编译
                                     </label>
                                     <p class="muted" data-bind="css:{'muted': !compileLess(), 'text-success': compileLess()}">
+                                        <i class="icon-ok"></i>
                                         变更后的.less文件将自动编译为.css文件（同目录）
                                     </p>
                                 </fieldset>
@@ -164,10 +166,27 @@
                                         <input type="checkbox" data-bind="checked:compileCoffee"> 开启自动编译
                                     </label>
                                     <p class="muted" data-bind="css:{'muted': !compileCoffee(), 'text-success': compileCoffee()}">
+                                        <i class="icon-ok"></i>
                                         变更后的.coffee文件将自动编译为.js文件（同目录）
                                     </p>
                                 </fieldset>
                             </form>
+                        </div>
+
+                        <div class="tab-pane active" id="pane-settings-refresh">
+                                <fieldset>
+                                    <legend><b>延迟刷新</b></legend>
+
+                                    <div class="input-prepend input-append">
+                                        <span class="add-on">等待</span>
+                                        <input class="span1"  type="text" data-bind="value: delay">
+                                        <span class="add-on">秒</span>
+                                    </div>
+                                    <p class="muted" data-bind="css:{'muted': !delay(), 'text-success': delay()}">
+                                        <i class="icon-ok"></i>
+                                        检测到文件变更以后，会等待一段时间后，再更新样式和内容
+                                    </p>
+                                </fieldset>
                         </div>
 
                     </div>

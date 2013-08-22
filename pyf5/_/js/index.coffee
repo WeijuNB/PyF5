@@ -74,6 +74,11 @@ ProjectModel = (data, root) ->
     @activeDomain = ko.observable '127.0.0.1'
     @compileLess = ko.observable false
     @compileCoffee = ko.observable false
+    @delay = ko.observable 0.0
+    @delay.subscribe (newValue) =>
+        if parseFloat(newValue) isnt newValue
+            @delay(parseFloat(newValue))
+            @save()
 
     # 域名切换相关--------------------------------------------------
     @activeDomains = ko.observableArray ['127.0.0.1']
@@ -213,6 +218,7 @@ ProjectModel = (data, root) ->
         @activeDomains([@activeDomain()])
         @compileLess(!!data.compileLess)
         @compileCoffee(!!data.compileCoffee)
+        @delay(parseFloat(data.delay) || 0.0)
 
     @save = =>
         API.project.update @
@@ -226,6 +232,7 @@ ProjectModel = (data, root) ->
         activeDomain: @activeDomain()
         compileLess: @compileLess()
         compileCoffee: @compileCoffee()
+        delay: parseFloat @delay()
 
     @load(data) if data
     @

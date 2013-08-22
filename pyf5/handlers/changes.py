@@ -45,6 +45,7 @@ class ChangeRequestHandler(RequestHandler):
         ret = '%s(%s);' % (self.callback_name, json.dumps({
             'status': 'ok',
             'time': time.time(),
+            'delay': self.application.active_project.delay,
             'changes': [change.dict() for change in changes],
         }))
         self.write(ret)
