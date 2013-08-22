@@ -5,7 +5,12 @@ from setuptools import setup
 import py2exe
 
 kwargs_py2exe = dict(
-    console=['f5.py'],
+    console=[
+        {
+            "script": 'f5.py',
+            'icon_resources': [(0, 'assets/app.ico')]
+        }
+    ],
     options={
         'py2exe': {
             'bundle_files': 1,
