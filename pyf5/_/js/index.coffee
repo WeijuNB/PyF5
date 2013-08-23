@@ -97,11 +97,11 @@ ProjectModel = (data, root) ->
 
     @clickAddDomain = (item, event) =>
         domain = $.trim prompt('请输入想要添加的域名：')
-        if domainf
+        if domain
             if not /^[\w\.\-]+$/.exec domain
                 alert '格式不对吧'
             else
-                if domain in @omains
+                if domain in @domains
                     alert '域名已存在'
                 else
                     @domains.unshift domain
@@ -166,7 +166,7 @@ ProjectModel = (data, root) ->
             @files.removeAll()
             for fileData in data['list']
                 @files.push(new FileModel(fileData, @))
-            $('#file-list td.op a').tooltip()
+            $('.file-list td.op a').tooltip()
 
     # QRCode --------------------------------------------
     @QRCodeFile = ko.observable null
@@ -246,7 +246,7 @@ ViewModel = ->
     @projects = ko.observableArray []
     @projects.subscribe (newValue) =>
         setTimeout(
-            => $('#projects .op a').tooltip()
+            => $('.project-box table .op a').tooltip()
             500)
 
     @activeProject = ko.computed =>
@@ -255,7 +255,7 @@ ViewModel = ->
 
     @activeProject.subscribe (project) =>
         setTimeout(
-            => $('#project [data-toggle=tooltip]').tooltip()
+            => $('.project-box [data-toggle=tooltip]').tooltip()
             500)
 
     @queryLocalHosts = =>
@@ -278,7 +278,7 @@ ViewModel = ->
     @queryProjects = =>
         API.project.list (data) =>
             for projectData in data['projects']
-                project = @loadProjectData projectData
+                @loadProjectData projectData
 
     @removeProject = (project) =>
         @projects.remove project
@@ -291,8 +291,9 @@ ViewModel = ->
                 @projects().active(true)
             $('#new-path-input').val ''
 
-    @askRemoveProject = (project) =>
+    @askRemoveProject = (project, event) =>
         @removeProject(project) if confirm '是否确认【删除】该项目?'
+        event.stopImmediatePropagation()
 
     @onSubmitProjectPath = (formElement) =>
         $input = $ '#new-path-input'

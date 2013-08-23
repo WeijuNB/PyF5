@@ -13,69 +13,6 @@ h1, h2, h3 {
   font-family: "Microsoft Yahei";
 }
 
-#body{
-  h3 {
-    font-family: "microsoft yahei";
-    color:  #444;
-    border-bottom: 1px solid #ddd;
-    line-height: 40px;
-  }
-}
-
-.navbar {
-  .container {
-    text-align: center;
-  }
-}
-
-#project-add-form{
-  margin-bottom: 5px;
-  padding-top: 5px;
-}
-
-#projects {
-  .project {
-    .path {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      a {
-        padding-left: 20px;
-        display: block;
-        color: #0088cc;
-        word-break: break-all;
-      }
-    }
-
-    .op {
-      width: 20px;
-      a {
-        display: none;
-      }
-    }
-
-    &.selected {
-      .path a {
-        color: #444;
-        background-position: left;
-        background-repeat: no-repeat;
-        background-image: url('/_/img/bullet_green.png');
-      }
-    }
-
-    &:hover{
-      .op{
-        a {
-          display: block;
-          .opacity(0.3);
-          &:hover {
-            .opacity(1);
-          }
-        }
-      }
-    }
-  }
-}
-
 .icon{
   display: inline-block;
   background-repeat: no-repeat;
@@ -103,146 +40,157 @@ h1, h2, h3 {
 }
 
 
-#settings-button{
-  margin-top: 16px;
-}
-
-#hosts {
-  margin-bottom: 10px;
-
-  span {
-    float:left;
-    font-size: 12px;
-    margin-top: 5px;
-  }
-
-  select {
-    margin: 0px;
-    width: 150px;
+.navbar {
+  .container {
+    text-align: center;
   }
 }
 
-#project {
-  padding-top: 13px;
+.projects-box {
+  form.add-project {
+    margin-bottom: 20px;
+  }
+
+  .list-group {
+    .list-group-item {
+      overflow-x: hidden;
+      position: relative;
+
+      i {
+        position: absolute;
+        right: 7px;
+        top: 7px;
+        display: none;
+      }
+
+      &:hover i {
+        display: inline-block;
+      }
+    }
+  }
+}
+
+.project-box {
+  padding-top: 45px;
+
+  .tab-content {
+    padding-top: 20px;
+  }
+
+  .text-muted .glyphicon {
+    display: none;
+  }
+  .text-success .glyphicon {
+    display: inline-block;
+  }
 
   #target-host {
     float: right;
+    margin-top: 10px;
     font-weight: normal;
-    margin-top: 8px;
-    padding: 3px 10px;
-  }
-
-  #pane-settings {
-
-    .clear-target-host {
-      display: inline-block;
-      vertical-align: top;
-      line-height: 30px;
-      margin-left: 10px;
-    }
-
-    fieldset {
-      font-size: 12px;
-      margin-bottom: 0px;
-
-      p {
-        &.muted i {
-          display: none;
-        }
-
-        &.text-success i {
-          display: inline-block;
-        }
-      }
-    }
-
-    #pane-settings-refresh {
-      .input-prepend.input-append {
-        margin-left: 3px;
-      }
-    }
+    font-family: verdana;
   }
 
   #pane-files {
-    ul.breadcrumb {
-      list-style: none;
-      margin-bottom: 5px;
-    }
-
-    #file-list {
-      tbody{
-        tr {
-          td.file {
-            a {
-              padding-left: 20px;
-            }
-          }
-
-          td.op {
-            text-align: right;
-
-            a {
-              visibility: hidden;
-              margin-left: 8px;
-              .opacity(0.3);
-              text-decoration: none;
-
-              &:hover{
-                .opacity(1);
-              }
-            }
-          }
+    table.file-list {
+      td.file {
+        a {
+          padding-left: 20px;
         }
+      }
 
-        tr:hover {
-          td.op {
-            a{
-              visibility: visible;
+      td.op {
+        width: 70px;
+        text-align: right;
 
-              &.unmute{
-                display:none;
-              }
-            }
-          }
+        a {
+          text-decoration: none;
+          margin-left: 3px;
         }
+        a.unmute {
+          color: #5CB85C;
+          display: none;
+        }
+        a.mute {
+          color: #D9534F;
+        }
+      }
 
-        tr.mute td.file a{
-          color: #444;
+      tr .op-group{
+        display: none;
+      }
+      tr:hover .op-group {
+        display: inline-block;
+      }
+
+      tr.muted {
+        .file a {
           .opacity(0.3);
         }
 
-        tr.mute:hover td.op a{
-          &.mute {
-            display: none;
-          }
-          &.unmute {
-            display: inline;
-          }
+        a.unmute {
+          display: inline-block;
+        }
+        a.mute {
+          display: none;
         }
       }
+    }
+  }
+
+  #pane-settings-project {
+    .target-host-setter {
+      width: 300px;
+    }
+  }
+
+  #pane-settings-compile {
+    .checkbox {
+      padding-bottom: 10px;
+
+      label {
+        font-weight: normal;
+
+        input[type=checkbox] {
+          margin-top: 3px;
+        }
+      }
+      p {
+        margin-top: 5px;
+      }
+
+    }
+  }
+
+  #pane-settings-refresh {
+    .input-group {
+      width: 150px;
+    }
+    p {
+      margin-top: 5px;
     }
   }
 }
 
 
+
 #qrcode-modal {
-
-  span.host {
-    float:left;
-    line-height: 30px;
-    font-size: 12px;
-    padding-right: 5px;
+  .input-group {
+    width: 300px;
   }
 
-  select {
-    width: 150px;
-    font-size: 13px;
+  .add-remove.btn-group {
   }
+
+  input[name=url] {
+    margin-top: 10px;
+    margin-bottom: 20px;
+  }
+
 
   #qrcode {
     width: 150px;
     height: 150px;
     margin: 0 auto;
-    margin-bottom: 20px;
   }
 }

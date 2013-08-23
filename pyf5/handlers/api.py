@@ -182,7 +182,7 @@ class ProjectAPI(APIRequestHandler):
         if self._find(path):
             return self.respond_error(PROJECT_EXISTS, u'项目已存在')
 
-        project = Project(path=path)
+        project = Project({'path': path})
         self.projects.append(project)
 
         self._save_config()
@@ -192,7 +192,7 @@ class ProjectAPI(APIRequestHandler):
         project = self.get_argument('project', None)
         try:
             data = json.loads(project)
-            project = Project(**data)
+            project = Project(data)
         except Exception:
             return self.respond_error(INVALID_PARAMS, u'project参数不正确')
 

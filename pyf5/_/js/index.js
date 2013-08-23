@@ -131,11 +131,11 @@
     this.clickAddDomain = function(item, event) {
       var domain;
       domain = $.trim(prompt('请输入想要添加的域名：'));
-      if (domainf) {
+      if (domain) {
         if (!/^[\w\.\-]+$/.exec(domain)) {
           return alert('格式不对吧');
         } else {
-          if (__indexOf.call(_this.omains, domain) >= 0) {
+          if (__indexOf.call(_this.domains, domain) >= 0) {
             return alert('域名已存在');
           } else {
             _this.domains.unshift(domain);
@@ -210,7 +210,7 @@
           fileData = _ref[_i];
           _this.files.push(new FileModel(fileData, _this));
         }
-        return $('#file-list td.op a').tooltip();
+        return $('.file-list td.op a').tooltip();
       });
     };
     this.QRCodeFile = ko.observable(null);
@@ -297,7 +297,7 @@
     this.projects = ko.observableArray([]);
     this.projects.subscribe(function(newValue) {
       return setTimeout(function() {
-        return $('#projects .op a').tooltip();
+        return $('.project-box table .op a').tooltip();
       }, 500);
     });
     this.activeProject = ko.computed(function() {
@@ -312,7 +312,7 @@
     });
     this.activeProject.subscribe(function(project) {
       return setTimeout(function() {
-        return $('#project [data-toggle=tooltip]').tooltip();
+        return $('.project-box [data-toggle=tooltip]').tooltip();
       }, 500);
     });
     this.queryLocalHosts = function() {
@@ -343,12 +343,12 @@
     };
     this.queryProjects = function() {
       return API.project.list(function(data) {
-        var project, projectData, _i, _len, _ref, _results;
+        var projectData, _i, _len, _ref, _results;
         _ref = data['projects'];
         _results = [];
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           projectData = _ref[_i];
-          _results.push(project = _this.loadProjectData(projectData));
+          _results.push(_this.loadProjectData(projectData));
         }
         return _results;
       });
@@ -366,10 +366,11 @@
         return $('#new-path-input').val('');
       });
     };
-    this.askRemoveProject = function(project) {
+    this.askRemoveProject = function(project, event) {
       if (confirm('是否确认【删除】该项目?')) {
-        return _this.removeProject(project);
+        _this.removeProject(project);
       }
+      return event.stopImmediatePropagation();
     };
     this.onSubmitProjectPath = function(formElement) {
       var $input, projectPath;

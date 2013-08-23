@@ -1,16 +1,17 @@
 #coding:utf-8
 import cPickle
 from schematics.models import Model
-from schematics.serialize import to_python
 from schematics.types import StringType, FloatType, BooleanType
 from schematics.types.compound import ModelType, ListType
-from watchdog.events import EVENT_TYPE_MOVED, EVENT_TYPE_DELETED, EVENT_TYPE_CREATED, EVENT_TYPE_MODIFIED, os
+from watchdog.events import EVENT_TYPE_MOVED, EVENT_TYPE_DELETED, EVENT_TYPE_CREATED, EVENT_TYPE_MODIFIED
+
+
 
 
 class BaseModel(Model):
     def dict(self):
         self.validate()
-        return to_python(self)
+        return self.serialize()
 
     def __repr__(self):
         s = '<' + self.__class__.__name__
@@ -52,7 +53,7 @@ class Config(BaseModel):
     @classmethod
     def load(cls, path):
         config_data = cPickle.load(open(path))
-        config = Config(**config_data)
+        config = Config(config_data)
         return config
 
     def save(self, path):
@@ -61,5 +62,5 @@ class Config(BaseModel):
 
 
 if __name__ == '__main__':
-    config = Config()
+    modal = BaseModel()
     pass

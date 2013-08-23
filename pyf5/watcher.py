@@ -91,9 +91,6 @@ class ChangesWatcher(FileSystemEventHandler):
             else:
                 print 'skip compile', change.path, '(setting is off)'
 
-
-
-
     def on_any_event(self, event):
         if event.is_directory:
             return
@@ -107,11 +104,11 @@ class ChangesWatcher(FileSystemEventHandler):
         src_relative_path = get_rel_path(event.src_path, self.path)
 
         if event.event_type == EVENT_TYPE_MOVED:
-            self.add_pure_change(Change(timestamp=now, path=src_relative_path, type=EVENT_TYPE_DELETED))
+            self.add_pure_change(Change(dict(timestamp=now, path=src_relative_path, type=EVENT_TYPE_DELETED)))
             dest_relative_path = get_rel_path(event.dest_path, self.path)
-            self.add_pure_change(Change(timestamp=now, path=dest_relative_path, type=EVENT_TYPE_CREATED))
+            self.add_pure_change(Change(dict(timestamp=now, path=dest_relative_path, type=EVENT_TYPE_CREATED)))
         else:
-            self.add_pure_change(Change(timestamp=now, path=src_relative_path, type=event.event_type))
+            self.add_pure_change(Change(dict(timestamp=now, path=src_relative_path, type=event.event_type)))
 
         # 延迟0.1秒上报变更，防止有些事件连续发生时错过
         self.changes_timer = loop.add_timeout(time.time() + 0.1, self.application.project_file_changed)

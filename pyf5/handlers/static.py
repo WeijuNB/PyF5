@@ -7,24 +7,7 @@ import gc
 
 from tornado.web import StaticFileHandler, RequestHandler, HTTPError
 
-from pyf5.settings import CURRENT_MODE, PRODUCTION_MODE
 from pyf5.handlers.helpers import process_html, HTML_EXTENSIONS, SPECIAL_EXTENSIONS,  CSS_EXTENSIONS, process_css
-from pyf5.utils import normalize_path
-
-
-class MarkDownHandler(RequestHandler):
-    def get(self, *args, **kwargs):
-        root_path = self.application.active_project.path
-        rel_path = self.request.path[1:]
-        rel_path = unquote(rel_path).decode('utf-8')
-        md_path = os.path.join(root_path, rel_path).replace('\\', '/')
-        code = open(md_path).read()
-        print md_path
-        self.render('edit.html',
-                    code=code,
-                    file_path=rel_path,
-                    abs_path=md_path
-                    )
 
 
 class ManagedFileHandler(StaticFileHandler):

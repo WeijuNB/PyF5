@@ -7,7 +7,7 @@ from pyf5.settings import CURRENT_MODE, VERSION, PRODUCTION_MODE, DEVELOPMENT_MO
 from pyf5.models import Config
 from pyf5.watcher import ChangesWatcher
 from pyf5.handlers.api import APIRequestHandler
-from pyf5.handlers.static import MarkDownHandler, ManagedFileHandler
+from pyf5.handlers.static import ManagedFileHandler
 from pyf5.handlers.proxy import ForwardRequestHandler
 from pyf5.handlers.changes import ChangeRequestHandler
 
@@ -84,7 +84,6 @@ class F5Server(Application):
         else:
             self.add_handlers(".*$", [
                 (r"/", RedirectHandler, {'url': '/_/index.html?ver=' + VERSION}),
-                (r"/(.*)\.md", MarkDownHandler),
                 (r"/(.*)", ManagedFileHandler, {"path": target_project.path}),
             ])
         handle = self.handlers.pop(0)

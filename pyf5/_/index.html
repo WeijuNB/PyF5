@@ -2,19 +2,13 @@
 <html xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="utf-8">
-    <title>F5 </title>
-
-    <link href="/_/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/_/css/bootstrap-responsive.min.css" rel="stylesheet">
-    <link href="/_/css/index.css" type="text/css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F5</title>
     <link rel="icon" type="image/x-icon" href="/_/img/favicon.ico" />
 
-    <script src="/_/js/libs/json2.js"></script>
-    <script src="/_/js/libs/jquery-1.8.2.min.js"></script>
-    <script src="/_/js/libs/jquery.cookie.js"></script>
-    <script src="/_/js/libs/jquery.qrcode.min.js"></script>
-    <script src="/_/js/libs/knockout-2.2.1.js"></script>
-    <script src="/_/js/libs/bootstrap.min.js"></script>
+    <link href="/_/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/_/css/index.less" type="text/css" rel="stylesheet/less">
+    <script src="/_/js/libs/less.js"></script>
 </head>
 <body>
 
@@ -22,89 +16,82 @@
 <div id="body" class="container">
     <div class="row">
 
-        <div class="span4">
-            <h3>项目列表</h3>
+        <div class="col-sm-5 projects-box">
+            <div class="page-header">
+                <h3>项目列表</h3>
+            </div>
 
-            <form id="project-add-form" data-bind="submit: onSubmitProjectPath">
-                <div class="input-append">
-                    <input class="span3" id="new-path-input"
-                           type="text" placeholder="请输入项目所在目录...">
-                    <button id="project-add-btn" class="btn btn-success" type="submit">添加</button>
+            <form class="add-project" data-bind="submit: onSubmitProjectPath">
+                <div class="input-group">
+                    <input class="form-control" id="new-path-input" type="text" placeholder="请输入项目所在目录...">
+                    <span class="input-group-btn">
+                        <button class="btn btn-success" type="submit">添加</button>
+                    </span>
                 </div>
             </form>
 
-            <table id="projects" class="table table-hover">
-                <tbody data-bind="foreach:projects">
-                <tr class="project" data-bind="css:{selected: active}">
-                    <td class="path">
-                        <a href="javascript:" data-bind="text:path, click:onClick"></a>
-                    </td>
-                    <td class="op">
-                        <a href="javascript:" title="从列表中去除"
-                           data-toggle="tooltip" data-bind="click:$root.askRemoveProject">
-                            <i class="icon-trash"></i>
-                        </a>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
+            <div class="list-group" data-bind="foreach:projects">
+                <a href="javascript:" class="list-group-item"
+                   data-bind="css:{active:active}, click:onClick">
+                    <span data-bind="text:path"></span>
+                    <i class="btn btn-danger btn-sm glyphicon glyphicon-trash"
+                            title="从列表中去除" data-toggle="tooltip"
+                            data-bind="click: $root.askRemoveProject"></i>
+                </a>
+            </div>
         </div>
 
-        <div id="project" class="span8" data-bind="with:activeProject">
-
+        <div class="project-box col-sm-7" data-bind="with:activeProject">
             <!-- ko if: targetHost -->
-            <a id="target-host" class="label label-info" href="/" target="_blank">
+            <a id="target-host" class="label label-success" href="/" target="_blank">
                 <span data-bind="text:activeDomainAndPort"></span>
-                <i class="icon-arrow-right icon-white"></i>
+                <i class="glyphicon glyphicon-arrow-right"></i>
                 <span data-bind="text:targetHost"></span>
             </a>
             <!-- /ko -->
 
             <ul class="nav nav-tabs">
-                <li class="active"><a href="#pane-files" data-toggle="tab">文件列表</a></li>
-                <li><a href="#pane-settings" data-toggle="tab">设置</a></li>
+                <li class="active">
+                    <a href="#pane-files" data-toggle="tab">文件列表</a>
+                </li>
+                <li>
+                    <a href="#pane-settings" data-toggle="tab">设置</a>
+                </li>
             </ul>
 
             <div class="tab-content">
+
                 <div class="tab-pane active" id="pane-files">
                     <ul class="breadcrumb">
-                        <li>
-                            <a href="javascript:"
-                               data-bind="text:path, click: goRoot"></a>
-                        </li>
+                        <li><a href="javascript:" data-bind="text:path, click: goRoot"></a></li>
                         <!-- ko foreach: folderSegments -->
-                        <li>
-                            <span class="divider">/</span>
-                            <a href="javascript:"
-                               data-bind="text: $data.name, click: onClick"></a>
-                        </li>
+                        <li><a href="javascript:" data-bind="text: name, click: onClick"></a></li>
                         <!-- /ko -->
                     </ul>
 
-                    <table id="file-list" class="table table-hover">
+                    <table class="file-list table table-hover">
                         <tbody data-bind="foreach:files">
-                        <tr data-bind="css:{mute:isMuted}">
+                        <tr data-bind="css:{muted:isMuted}">
                             <td class="file">
                                 <a href="javascript:" class="icon" target="_blank"
                                    data-bind="text:name, css:type, click:onClick, attr:{href:url}"></a>
                             </td>
 
-                            <td class="span2 op">
-                                <a href="javascript:" class="qrcode"
-                                   data-toggle="tooltip" title="URL+二维码"
-                                   data-bind="click: $parent.showQRCode">
-                                    <i class="icon-qrcode"></i>
-                                </a>
-                                <a href="javascript:" class="mute"
-                                   data-toggle="tooltip" title="不监听更新"
-                                   data-bind="click:mute">
-                                    <i class="icon-ban-circle"></i>
-                                </a>
-                                <a href="javascript:" class="unmute"
-                                   data-toggle="tooltip" title="监听更新"
-                                   data-bind="click:unmute">
-                                    <i class="icon-ok-circle"></i>
-                                </a>
+                            <td class="op">
+                                <div class="op-group">
+                                    <a href="javascript:" class="qrcode glyphicon glyphicon-qrcode"
+                                       data-toggle="tooltip" title="URL+二维码"
+                                       data-bind="click: $parent.showQRCode">
+                                    </a>
+                                    <a href="javascript:" class="mute glyphicon glyphicon-ban-circle"
+                                       data-toggle="tooltip" title="不监听更新"
+                                       data-bind="click:mute">
+                                    </a>
+                                    <a href="javascript:" class="unmute glyphicon glyphicon-ok-circle"
+                                       data-toggle="tooltip" title="监听更新"
+                                       data-bind="click:unmute">
+                                    </a>
+                                </div>
                             </td>
 
                         </tr>
@@ -115,9 +102,15 @@
                 <div class="tab-pane" id="pane-settings">
 
                     <ul class="nav nav-pills">
-                        <li class="active"><a href="#pane-settings-project" data-toggle="tab">项目设置</a></li>
-                        <li><a href="#pane-settings-compile" data-toggle="tab">自动编译</a></li>
-                        <li><a href="#pane-settings-refresh" data-toggle="tab">刷新设置</a></li>
+                        <li class="active">
+                            <a href="#pane-settings-project" data-toggle="tab">项目设置</a>
+                        </li>
+                        <li>
+                            <a href="#pane-settings-compile" data-toggle="tab">自动编译</a>
+                        </li>
+                        <li>
+                            <a href="#pane-settings-refresh" data-toggle="tab">刷新设置</a>
+                        </li>
                     </ul>
 
                     <div class="tab-content">
@@ -125,23 +118,31 @@
                             <p>
                                 如果您的网站是<b>纯静态项目</b>，那么无需任何设置，只要点击文件列表中的网页就能直接使用
                             </p>
+
                             <hr>
+
                             <p>
                                 如果您的项目使用到了<b>服务器技术</b>（如php），请设置该服务器的域名和端口：
-                            <form data-bind="submit: submitTargetHost">
-                                <div class="input-append">
-                                    <input class="span3" type="text" id="target-host-input"
-                                           placeholder="somedomain.com:8080" data-bind="attr:{value:targetHost}">
-                                    <button class="btn" type="submit">保存</button>
-                                </div>
-                                <a class="clear-target-host" href="javascript:" data-bind="click: clearTargetHost">清除</a>
-                            </form>
-                            <span class="muted">
-                                设定完成之后，访问F5所在域名<span data-bind="text:activeDomainAndPort"></span>
-                                就相当于访问映射的域名和端口（并加上自动刷新功能）
-                            </span>
+                                <form data-bind="submit: submitTargetHost">
+                                    <div class="target-host-setter input-group">
+                                        <input class="form-control" type="text" id="target-host-input"
+                                               placeholder="somedomain.com:8080"
+                                               data-bind="attr:{value:targetHost}">
+                                        <div class="input-group-btn btn-group">
+                                            <button class="btn btn-success" type="submit">保存</button>
+                                            <button class="btn btn-default" data-bind="click: clearTargetHost">清除</button>
+                                        </div>
+                                    </div>
+                                </form>
+
+                                <p class="text-muted">
+                                    设定完成之后，访问F5所在域名<span data-bind="text:activeDomainAndPort"></span>
+                                    就相当于访问映射的域名和端口（并加上自动刷新功能）
+                                </p>
                             </p>
+
                             <hr>
+
                             <p>
                                 如果不方便映射，也可以简单粗暴地在网页的&lt;/body&gt;之前插入如下代码来实现自动刷新:
                             <pre>&lt;script src="http://<span data-bind="text:activeDomainAndPort"></span>/_/js/reloader.js"&gt;&lt;/script&gt;</pre>
@@ -149,95 +150,101 @@
                         </div>
 
                         <div class="tab-pane" id="pane-settings-compile">
-                            <form>
-                                <fieldset>
-                                    <legend>Less</legend>
-                                    <label class="checkbox" data-bind="click: onCompileCheckboxClick">
-                                        <input type="checkbox" data-bind="checked:compileLess"> 开启自动编译
-                                    </label>
-                                    <p class="muted" data-bind="css:{'muted': !compileLess(), 'text-success': compileLess()}">
-                                        <i class="icon-ok"></i>
-                                        变更后的.less文件将自动编译为.css文件（同目录）
-                                    </p>
-                                </fieldset>
+                            <legend>Less</legend>
+                            <div class="checkbox">
+                                <label data-bind="click: onCompileCheckboxClick">
+                                    <input type="checkbox" data-bind="checked:compileLess"> 开启自动编译
+                                </label>
+                                <p class="text-muted" data-bind="css:{'text-muted': !compileLess(), 'text-success': compileLess()}">
+                                    <i class="glyphicon glyphicon-ok"></i>
+                                    变更后的.less文件将自动编译为.css文件（同目录）
+                                </p>
+                            </div>
 
-                                <fieldset>
-                                    <legend>CoffeeScript</legend>
-                                    <label class="checkbox" data-bind="click:onCompileCheckboxClick">
-                                        <input type="checkbox" data-bind="checked:compileCoffee"> 开启自动编译
-                                    </label>
-                                    <p class="muted" data-bind="css:{'muted': !compileCoffee(), 'text-success': compileCoffee()}">
-                                        <i class="icon-ok"></i>
-                                        变更后的.coffee文件将自动编译为.js文件（同目录）
-                                    </p>
-                                </fieldset>
-                            </form>
+                            <legend>CoffeeScript</legend>
+                            <div class="checkbox">
+                                <label data-bind="click:onCompileCheckboxClick">
+                                    <input type="checkbox" data-bind="checked:compileCoffee"> 开启自动编译
+                                </label>
+                                <p class="text-muted" data-bind="css:{'text-muted': !compileCoffee(), 'text-success': compileCoffee()}">
+                                    <i class="glyphicon glyphicon-ok"></i>
+                                    变更后的.coffee文件将自动编译为.js文件（同目录）
+                                </p>
+                            </div>
                         </div>
 
                         <div class="tab-pane" id="pane-settings-refresh">
-                                <fieldset>
-                                    <legend><b>延迟刷新</b></legend>
-
-                                    <div class="input-prepend input-append">
-                                        <span class="add-on">等待</span>
-                                        <input class="span1"  type="text" data-bind="value: delay">
-                                        <span class="add-on">秒</span>
-                                    </div>
-                                    <p class="muted" data-bind="css:{'muted': !delay(), 'text-success': delay()}">
-                                        <i class="icon-ok"></i>
-                                        检测到文件变更以后，会等待一段时间后，再更新样式和内容
-                                    </p>
-                                </fieldset>
+                            <legend><b>延迟刷新</b></legend>
+                            <div class="input-group">
+                                <span class="input-group-addon">等待</span>
+                                <input class="form-control" type="text" data-bind="value: delay">
+                                <span class="input-group-addon">秒</span>
+                            </div>
+                            <p class="text-muted" data-bind="css:{'text-muted': !delay(), 'text-success': delay()}">
+                                <i class="glyphicon glyphicon-ok"></i>
+                                检测到文件变更以后，会等待一段时间后，再更新样式和内容
+                            </p>
                         </div>
 
                     </div>
 
                 </div>
             </div>
-
-
         </div>
     </div>
 </div>
 
-<div id="qrcode-modal" class="modal hide">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3>二维码URL</h3>
-    </div>
-    <div class="modal-body" data-bind="with:activeProject">
+<div id="qrcode-modal" class="modal fade">
+    <div class="modal-dialog">
+        <div class="modal-content">
 
-        <div id="hosts">
-            <span>域名：</span>
-            <select data-bind="options: allHosts, selectedOptions: activeDomains">
-            </select>
-
-            <div class="btn-group ">
-                <a href="javascript:" class="btn btn-small btn-success" data-bind="click:clickAddDomain">
-                    <i class="icon-plus icon-white"></i>
-                </a>
-
-                <!-- ko if: domains.indexOf(activeDomain()) > -1 -->
-                <a href="#" class="btn btn-small" data-bind="click:clickRemoveDomain">
-                    <i class="icon-minus"></i>
-                </a>
-                <!-- /ko -->
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 class="modal-title">二维码URL</h3>
             </div>
+
+            <div class="modal-body" data-bind="with:activeProject">
+                <div id="hosts">
+                    <div class="input-group">
+                        <span class="input-group-addon">域名</span>
+                        <select class="form-control"
+                                data-bind="options: allHosts, selectedOptions: activeDomains"></select>
+                        <div class="input-group-btn">
+                            <button type="button" class="btn btn-success" data-bind="click:clickAddDomain">
+                                <span class="glyphicon glyphicon-plus"></span>
+                            </button>
+                            <!-- ko if: domains.indexOf(activeDomain()) > -1 -->
+                            <button class="btn btn-default" data-bind="click:clickRemoveDomain">
+                                <span class="glyphicon glyphicon-minus"></span>
+                            </button>
+                            <!-- /ko -->
+                        </div>
+                    </div>
+                </div>
+                <div class="clearfix"></div>
+
+                <!-- ko with: QRCodeFile -->
+                <input name="url" class="form-control" type="text"
+                       data-bind="value:url, event:{keyup: $parent.QRUrlChange, change: $parent.QRUrlChange}">
+                <!-- /ko -->
+
+                <div id="qrcode"></div>
+            </div>
+
+            <div class="modal-footer">
+                <a href="javascript:" data-dismiss="modal" class="btn btn-primary">关闭</a>
+            </div>
+
         </div>
-
-        <!-- ko with: QRCodeFile -->
-        <input name="url" class="input-block-level" type="text"
-               data-bind="value:url, event:{keyup: $parent.QRUrlChange, change: $parent.QRUrlChange}">
-        <!-- /ko -->
-
-        <div id="qrcode"></div>
-    </div>
-
-    <div class="modal-footer">
-        <a href="javascript:" data-dismiss="modal" class="btn">关闭</a>
     </div>
 </div>
 
+<script src="/_/js/libs/json2.js"></script>
+<script src="/_/js/libs/jquery-1.8.2.min.js"></script>
+<script src="/_/js/libs/jquery.cookie.js"></script>
+<script src="/_/js/libs/jquery.qrcode.min.js"></script>
+<script src="/_/js/libs/knockout-2.2.1.js"></script>
+<script src="/_/js/libs/bootstrap.js"></script>
 <script src="/_/js/api.js"></script>
 <script src="/_/js/index.js"></script>
 
