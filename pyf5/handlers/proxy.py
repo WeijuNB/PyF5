@@ -34,6 +34,7 @@ class ForwardRequestHandler(tornado.web.RequestHandler):
                 self.set_status(response.code)
                 for header in response.headers:
                     if header not in [
+                        'Transfer-Encoding',  # 防止 chunked
                         'Content-Encoding', 'Content-Length',  # 防止gzip
                         'Etag', 'Expires', 'Last-Modified'  # 防止缓存
                     ]:
