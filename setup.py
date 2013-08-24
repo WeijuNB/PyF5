@@ -38,7 +38,7 @@ kwargs_py2app = dict(
             'argv_emulation': True,
             'iconfile': 'assets/app.icns',
             'site_packages': False,
-            'resources': ['pyf5/_'],
+            'resources': ['pyf5/_', 'pyf5/bundled'],
             'plist': {
                 'NSHumanReadableCopyright': 'WeiJu .inc',
                 'CFBundleVersion': VERSION,
