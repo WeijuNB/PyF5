@@ -1,8 +1,8 @@
 #coding:utf-8
-from datetime import datetime
 import os
 import sys
 import time
+from datetime import datetime
 from types import NoneType
 from schematics.models import Model
 
@@ -18,6 +18,13 @@ def normalize_path(path):
 def path_is_parent(parent_path, maybe_child_path):
     rel_path = os.path.relpath(maybe_child_path, parent_path)
     return False if '..' in rel_path else True
+
+
+def run_cmd(cmd):
+    if sys.platform.startswith('win'):
+        os.system(cmd.replace('/', '\\'))
+    else:
+        os.system(cmd.replace('\\', '/'))
 
 
 def jsonable(o):

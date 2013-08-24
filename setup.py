@@ -1,8 +1,12 @@
 #coding:utf-8
 import sys
 from setuptools import setup
+from pyf5.settings import VERSION
 
-import py2exe
+try:
+    import py2exe
+except:
+    pass
 
 kwargs_py2exe = dict(
     console=[
@@ -25,5 +29,26 @@ kwargs_py2exe = dict(
     zipfile=None,
 )
 
-if sys.argv[1] and sys.argv[1].lower() == 'py2exe':
+kwargs_py2app = dict(
+    setup_requires=['py2app'],
+    app=['f5.py'],
+    options={
+        'py2app': {
+            'optimize': 2,
+            'argv_emulation': True,
+            'iconfile': 'assets/app.icns',
+            'site_packages': False,
+            'resources': ['pyf5/_'],
+            'plist': {
+                'NSHumanReadableCopyright': 'WeiJu .inc',
+                'CFBundleVersion': VERSION,
+                'CFBundleSignature': 'getf5',
+            },
+        }
+    },
+)
+
+if sys.platform == 'darwin':
+    setup(name='F5', **kwargs_py2app)
+else:
     setup(**kwargs_py2exe)

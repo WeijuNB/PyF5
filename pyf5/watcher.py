@@ -1,14 +1,16 @@
 #coding:utf-8
 import os
+import sys
 import time
 
 from tornado import ioloop
-from watchdog.events import FileSystemEventHandler, EVENT_TYPE_MOVED, EVENT_TYPE_DELETED, EVENT_TYPE_CREATED
+from watchdog.events import FileSystemEventHandler, FileModifiedEvent, \
+    EVENT_TYPE_MOVED, EVENT_TYPE_DELETED, EVENT_TYPE_CREATED
 from watchdog.observers import Observer
 
 from pyf5.models import Change
-from pyf5.settings import DEFAULT_MUTE_LIST, APP_FOLDER
-from pyf5.utils import get_rel_path, path_is_parent, normalize_path
+from pyf5.settings import DEFAULT_MUTE_LIST, APP_FOLDER, NODE_BIN_PATH
+from pyf5.utils import get_rel_path, path_is_parent, normalize_path, run_cmd
 
 
 class ChangesWatcher(FileSystemEventHandler):
@@ -61,38 +63,51 @@ class ChangesWatcher(FileSystemEventHandler):
         if change.type == EVENT_TYPE_DELETED:
             return
 
-        abs_path = normalize_path(os.path.join(self.path, change.path))
-        base_path, ext = os.path.splitext(abs_path)
+        input_path = normalize_path(os.path.join(self.path, change.path))
+        base_path, ext = os.path.splitext(input_path)
         ext = ext.lower()
-
         if ext not in['.less', '.coffee']:
             return
 
-        if not self.application.active_project:
+        active_project = self.application.active_project
+        if not active_project:
             return
 
-        active_project = self.application.active_project
         begin_time = time.time()
-        os.chdir(APP_FOLDER)
         if ext == '.less':
             if active_project.compileLess:
                 output_path = base_path + '.css'
-                cmd = 'bundled/node.exe bundled/less/bin/lessc %s %s' % (abs_path, output_path)
-                os.system(cmd.replace('/', '\\'))
+                run_cmd('%s bundled/less/bin/lessc %s %s' % (NODE_BIN_PATH, input_path, output_path))
                 print 'compile:', change.path, time.time() - begin_time, 'seconds'
             else:
-                print 'skip compile', change.path, '(setting is off)'
+                print 'skip compile', change.path, '(OFF by settings)'
+
         elif ext == '.coffee':
             if active_project.compileCoffee:
-                output_path = base_path + '.js'
-                cmd = 'bundled/node.exe bundled/coffee/bin/coffee --compile %s' % (abs_path, )
-                os.system(cmd.replace('/', '\\'))
+                run_cmd('%s bundled/coffee/bin/coffee --compile %s' % (NODE_BIN_PATH, input_path))
                 print 'compile:', change.path, time.time() - begin_time, 'seconds'
             else:
-                print 'skip compile', change.path, '(setting is off)'
+                print 'skip compile', change.path, '(OFF by settings)'
+
+    def if_folder_changed(self, folder_path):
+        if sys.platform.startswith('win'):
+            return
+        if not os.path.isdir(folder_path):
+            return  # ignore
+
+        now = time.time() - 2.5  # 2.5秒内的都算修改
+        for filename in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, filename)
+            if not os.path.isfile(file_path):
+                continue
+
+            modified_time = os.path.getmtime(file_path)
+            if modified_time > now:
+                self.on_any_event(FileModifiedEvent(file_path))
 
     def on_any_event(self, event):
         if event.is_directory:
+            self.if_folder_changed(event.src_path)
             return
 
         # 暂停文件变更的上报, 以免中途编译占用太长时间，而将事件提前返回
