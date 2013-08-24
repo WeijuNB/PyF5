@@ -73,6 +73,7 @@ class ChangesWatcher(FileSystemEventHandler):
         if not active_project:
             return
 
+        os.chdir(APP_FOLDER)
         begin_time = time.time()
         if ext == '.less':
             if active_project.compileLess:
