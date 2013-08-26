@@ -75,6 +75,10 @@ class F5Server(Application):
             self.config.projects.append(target_project)
             target_project.active = True
 
+        if not os.path.exists(target_project.path):
+            target_project.active = False
+            return False
+
         if len(self.handlers) > 1:
             self.handlers.pop(-1)
 
@@ -92,6 +96,7 @@ class F5Server(Application):
         self.watcher.observe(target_project.path, target_project.muteList)
         if CURRENT_MODE == DEVELOPMENT_MODE:
             self.watcher.observer.schedule(self.watcher, APP_FOLDER, recursive=True)
+        return True
 
     def current_project_path(self):
         if not self.active_project:
