@@ -44,7 +44,7 @@
         <div class="project-box col-sm-7" data-bind="with:activeProject">
             <!-- ko if: targetHost -->
             <a class="setting target-host label label-primary" href="/" target="_blank">
-                <span data-bind="text:activeDomainAndPort"></span>
+                <span data-bind="text:$root.host"></span>
                 <i class="glyphicon glyphicon-arrow-right"></i>
                 <span data-bind="text:targetHost"></span>
             </a>
