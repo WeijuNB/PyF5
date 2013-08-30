@@ -184,6 +184,7 @@ class ProjectAPI(APIRequestHandler):
 
         project = Project({'path': path})
         self.projects.append(project)
+        self.application.watcher.add_watch(project.path)
 
         self._save_config()
         self.respond_success({'project': project})
@@ -221,6 +222,7 @@ class ProjectAPI(APIRequestHandler):
         project = self._find(path)
         if project:
             self.projects.remove(project)
+            self.application.watcher.remove_watch(project.path)
         self._save_config()
         return self.list()
 

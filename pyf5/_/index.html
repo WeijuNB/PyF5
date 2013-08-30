@@ -43,11 +43,27 @@
 
         <div class="project-box col-sm-7" data-bind="with:activeProject">
             <!-- ko if: targetHost -->
-            <a id="target-host" class="label label-success" href="/" target="_blank">
-                <span data-bind="text:$root.host"></span>
+            <a class="setting target-host label label-primary" href="/" target="_blank">
+                <span data-bind="text:activeDomainAndPort"></span>
                 <i class="glyphicon glyphicon-arrow-right"></i>
                 <span data-bind="text:targetHost"></span>
             </a>
+            <!-- /ko -->
+
+            <!-- ko if: compileLess -->
+            <span class="setting compile-less label label-success">
+                <span>less</span>
+                <i class="glyphicon glyphicon-arrow-right"></i>
+                <span>css</span>
+            </span>
+            <!-- /ko -->
+
+            <!-- ko if: compileCoffee -->
+            <span class="setting compile-coffee label label-success">
+                <span>coffee</span>
+                <i class="glyphicon glyphicon-arrow-right"></i>
+                <span>js</span>
+            </span>
             <!-- /ko -->
 
             <ul class="nav nav-tabs">

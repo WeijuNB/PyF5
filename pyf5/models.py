@@ -6,8 +6,6 @@ from schematics.types.compound import ModelType, ListType
 from watchdog.events import EVENT_TYPE_MOVED, EVENT_TYPE_DELETED, EVENT_TYPE_CREATED, EVENT_TYPE_MODIFIED
 
 
-
-
 class BaseModel(Model):
     def dict(self):
         self.validate()
