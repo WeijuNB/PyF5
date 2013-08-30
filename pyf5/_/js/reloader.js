@@ -162,7 +162,8 @@
         UrlUtils: UrlUtils,
         handleChanges: handleChanges,
         updateCSS: updateCSS,
-        refresh: refresh
+        refresh: refresh,
+        destroyLessCache: destroyLessCache
     };
 
     function isManualScript() {
@@ -382,14 +383,11 @@
     }
 
     $(function () {
-        if (isIE()) {
-            updateCSS();
-            updateAllLESS();
-        }
+        updateCSS();
+        updateAllLESS();
         setTimeout(function () {
             restoreScrollPosition();
             queryChanges();
         }, 300);
     });
-
 })();
