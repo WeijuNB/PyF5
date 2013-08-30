@@ -134,7 +134,8 @@ ProjectModel = (data, root) ->
 
     # QRCode --------------------------------------------
     @QRhost.subscribe (newValue) =>
-        setTimeout( => @QRUrlChange()
+        setTimeout(
+            => @QRUrlChange()
             100
         )
 
