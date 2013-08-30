@@ -252,10 +252,6 @@
             for (var i = 0; i < document.styleSheets.length; i ++) {
                 var styleSheet = document.styleSheets[i];
                 var li = styleSheet.cssRules || styleSheet.imports || [];
-                console.log(styleSheet.href);
-                console.log(li);
-                console.log(li.length);
-
                 // <= ie8时，imports如果长度为0，会报没有权限
                 try {
                     var l = li.length;
