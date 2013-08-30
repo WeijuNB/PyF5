@@ -23,13 +23,10 @@
       }
     });
     this.url = ko.computed(function() {
-      var root;
-      root = project.root;
-      if (root.port()) {
-        return "http://" + (project.activeDomain()) + ":" + (root.port()) + "/" + (_this.relativePath());
-      } else {
-        return "http://" + (project.activeDomain()) + "/" + (_this.relativePath());
-      }
+      return "http://" + (project.root.host()) + "/" + (_this.relativePath());
+    });
+    this.QRurl = ko.computed(function() {
+      return "http://" + (project.QRhost()) + "/" + (_this.relativePath());
     });
     this.isMuted = ko.computed(function() {
       var mutePath, _i, _len, _ref;
@@ -102,8 +99,7 @@
     });
     this.muteList = ko.observableArray([]);
     this.targetHost = ko.observable('');
-    this.domains = ko.observableArray([]);
-    this.activeDomain = ko.observable('127.0.0.1');
+    this.QRhost = ko.observable(location.host);
     this.compileLess = ko.observable(false);
     this.compileCoffee = ko.observable(false);
     this.delay = ko.observable(0.0);
@@ -113,45 +109,6 @@
         return _this.save();
       }
     });
-    this.activeDomains = ko.observableArray(['127.0.0.1']);
-    this.activeDomains.subscribe(function(newValue) {
-      _this.activeDomain(newValue[0]);
-      return _this.QRCodeFile(_this.QRCodeFile());
-    });
-    this.allHosts = ko.computed(function() {
-      return _this.domains().concat(root.localHosts());
-    });
-    this.activeDomainAndPort = ko.computed(function() {
-      if (root.port()) {
-        return "" + (_this.activeDomain()) + ":" + (root.port());
-      } else {
-        return _this.activeDomain();
-      }
-    });
-    this.clickAddDomain = function(item, event) {
-      var domain;
-      domain = $.trim(prompt('请输入想要添加的域名：'));
-      if (domain) {
-        if (!/^[\w\.\-]+$/.exec(domain)) {
-          return alert('格式不对吧');
-        } else {
-          if (__indexOf.call(_this.domains, domain) >= 0) {
-            return alert('域名已存在');
-          } else {
-            _this.domains.unshift(domain);
-            _this.activeDomains([domain]);
-            return _this.save();
-          }
-        }
-      }
-    };
-    this.clickRemoveDomain = function(item, event) {
-      _this.domains.remove(_this.activeDomain());
-      if (_this.activeHosts().length) {
-        _this.activeDomains([_this.allHosts()[0]]);
-        return _this.save();
-      }
-    };
     this.showSettings = ko.observable($.cookie('hideSettings') !== 'true');
     this.showSettings.subscribe(function(newValue) {
       return $.cookie('hideSettings', !newValue);
@@ -213,20 +170,23 @@
         return $('.file-list td.op a').tooltip();
       });
     };
+    this.QRhost.subscribe(function(newValue) {
+      return setTimeout(function() {
+        return _this.updateQRCode($('#qrurl-input').val());
+      }, 100);
+    });
     this.QRCodeFile = ko.observable(null);
     this.QRCodeFile.extend({
       notify: 'always'
     });
     this.QRCodeFile.subscribe(function(newValue) {
       if (newValue) {
-        $('#qrcode-modal').modal().on('hidden', function() {
-          return _this.QRCodeFile(null);
-        });
-        return _this.updateQRCode(newValue.url());
+        $('#qrcode-modal').modal();
+        return _this.updateQRCode(newValue.QRurl());
       }
     });
     this.QRUrlChange = function(item, event) {
-      return _this.updateQRCode($(event.target).val());
+      return _this.updateQRCode($('#qrurl-input').val());
     };
     this.updateQRCode = function(text) {
       var $el;
@@ -261,9 +221,7 @@
       _this.active(!!data.active);
       _this.muteList(data.muteList || []);
       _this.targetHost(data.targetHost || "");
-      _this.domains(data.domains || []);
-      _this.activeDomain(data.activeDomain || '127.0.0.1');
-      _this.activeDomains([_this.activeDomain()]);
+      _this.QRhost(data.QRhost || root.host());
       _this.compileLess(!!data.compileLess);
       _this.compileCoffee(!!data.compileCoffee);
       return _this.delay(parseFloat(data.delay) || 0.0);
@@ -277,8 +235,7 @@
         active: _this.active(),
         muteList: _this.muteList(),
         targetHost: _this.targetHost(),
-        domains: _this.domains(),
-        activeDomain: _this.activeDomain(),
+        QRhost: _this.QRhost(),
         compileLess: _this.compileLess(),
         compileCoffee: _this.compileCoffee(),
         delay: parseFloat(_this.delay())
@@ -292,7 +249,7 @@
 
   ViewModel = function() {
     var _this = this;
-    this.port = ko.observable(location.port);
+    this.host = ko.observable(location.host);
     this.localHosts = ko.observableArray(['127.0.0.1']);
     this.projects = ko.observableArray([]);
     this.projects.subscribe(function(newValue) {

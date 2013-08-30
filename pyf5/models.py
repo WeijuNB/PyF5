@@ -40,8 +40,7 @@ class Project(BaseModel):
     active = BooleanType(default=False)
     muteList = ListType(StringType(), default=[])
     targetHost = StringType()
-    domains = ListType(StringType(), default=[])
-    activeDomain = StringType()
+    QRhost = StringType(default='127.0.0.1')
     compileLess = BooleanType(default=False)
     compileCoffee = BooleanType(default=False)
     delay = FloatType(default=0.0)
@@ -62,5 +61,5 @@ class Config(BaseModel):
 
 
 if __name__ == '__main__':
-    modal = BaseModel()
+    # modal = BaseModel()
     pass

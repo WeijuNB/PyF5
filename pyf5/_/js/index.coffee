@@ -14,11 +14,10 @@ FileModel = (data, project) ->
         relPath = relPath.substr(1) if relPath and relPath[0] == '/'
 
     @url = ko.computed =>
-        root = project.root
-        if root.port()
-            "http://#{project.activeDomain()}:#{root.port()}/#{@relativePath()}"
-        else
-            "http://#{project.activeDomain()}/#{@relativePath()}"
+        "http://#{project.root.host()}/#{@relativePath()}"
+
+    @QRurl = ko.computed =>
+        "http://#{project.QRhost()}/#{@relativePath()}"
 
     @isMuted = ko.computed =>
         return false if not project.muteList().length
@@ -70,48 +69,13 @@ ProjectModel = (data, root) ->
                 @currentFolder('')
     @muteList = ko.observableArray []
     @targetHost = ko.observable ''
-    @domains = ko.observableArray []
-    @activeDomain = ko.observable '127.0.0.1'
+    @QRhost = ko.observable location.host
     @compileLess = ko.observable false
     @compileCoffee = ko.observable false
     @delay = ko.observable 0.0
     @delay.subscribe (newValue) =>
         if parseFloat(newValue) isnt newValue
             @delay(parseFloat(newValue))
-            @save()
-
-    # 域名切换相关--------------------------------------------------
-    @activeDomains = ko.observableArray ['127.0.0.1']
-    @activeDomains.subscribe (newValue) =>
-        @activeDomain newValue[0]
-        @QRCodeFile @QRCodeFile()
-
-    @allHosts = ko.computed =>
-        @domains().concat root.localHosts()
-
-    @activeDomainAndPort = ko.computed =>
-        if root.port()
-            "#{@activeDomain()}:#{root.port()}"
-        else
-            @activeDomain()
-
-    @clickAddDomain = (item, event) =>
-        domain = $.trim prompt('请输入想要添加的域名：')
-        if domain
-            if not /^[\w\.\-]+$/.exec domain
-                alert '格式不对吧'
-            else
-                if domain in @domains
-                    alert '域名已存在'
-                else
-                    @domains.unshift domain
-                    @activeDomains [domain]
-                    @save()
-
-    @clickRemoveDomain = (item, event) =>
-        @domains.remove @activeDomain()
-        if @activeHosts().length
-            @activeDomains [@allHosts()[0]]
             @save()
 
     # settings ---------------------------------------------
@@ -169,20 +133,20 @@ ProjectModel = (data, root) ->
             $('.file-list td.op a').tooltip()
 
     # QRCode --------------------------------------------
+    @QRhost.subscribe (newValue) =>
+        setTimeout( => @QRUrlChange()
+            100
+        )
+
     @QRCodeFile = ko.observable null
     @QRCodeFile.extend notify:'always'
     @QRCodeFile.subscribe (newValue) =>
         if newValue
             $('#qrcode-modal')
                 .modal()
-                .on 'hidden', () =>
-                    @QRCodeFile(null)
-            @updateQRCode newValue.url()
 
     @QRUrlChange = (item, event) =>
-        @updateQRCode $(event.target).val()
-
-    @updateQRCode = (text) ->
+        text = $('#qrurl-input').val()
         $el = $('#qrcode')
         $el.empty().qrcode(
             width:$el.width(),
@@ -213,9 +177,7 @@ ProjectModel = (data, root) ->
         @active(!!data.active)
         @muteList(data.muteList or [])
         @targetHost(data.targetHost or "")
-        @domains(data.domains or [])
-        @activeDomain(data.activeDomain or '127.0.0.1')
-        @activeDomains([@activeDomain()])
+        @QRhost(data.QRhost or root.host())
         @compileLess(!!data.compileLess)
         @compileCoffee(!!data.compileCoffee)
         @delay(parseFloat(data.delay) || 0.0)
@@ -228,8 +190,7 @@ ProjectModel = (data, root) ->
         active: @active()
         muteList: @muteList()
         targetHost: @targetHost()
-        domains: @domains()
-        activeDomain: @activeDomain()
+        QRhost: @QRhost()
         compileLess: @compileLess()
         compileCoffee: @compileCoffee()
         delay: parseFloat @delay()
@@ -239,7 +200,7 @@ ProjectModel = (data, root) ->
 
 
 ViewModel = ->
-    @port = ko.observable location.port
+    @host = ko.observable location.host
 
     @localHosts = ko.observableArray ['127.0.0.1']
 
@@ -252,7 +213,6 @@ ViewModel = ->
     @activeProject = ko.computed =>
         for project in @projects()
             return project if project.active()
-
     @activeProject.subscribe (project) =>
         setTimeout(
             => $('.project-box [data-toggle=tooltip]').tooltip()
