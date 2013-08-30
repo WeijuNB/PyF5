@@ -13,26 +13,44 @@ from pyf5.settings import DEFAULT_MUTE_LIST, APP_FOLDER, NODE_BIN_PATH
 from pyf5.utils import get_rel_path, path_is_parent, normalize_path, run_cmd
 
 
+class ChangesKeeper(object):
+    def __init__(self, watch, mute_list):
+        self.watch = watch
+        self.mute_list = mute_list
+
+
 class ChangesWatcher(FileSystemEventHandler):
     def __init__(self, application):
+        self.task_map = {}  # path: ChangesKeeper
         self.application = application
         self.observer = Observer()
         self.changes = []
-        self.mute_list = []
-        self.path = None
         self.changes_timer = None
         self.observer.start()
 
-    def observe(self, path, mute_list=None):
-        self.path = path
-        self.mute_list = (mute_list or []) + DEFAULT_MUTE_LIST
-        self.observer.unschedule_all()
-        self.observer.schedule(self, self.path, recursive=True)
+    def add_watch(self, path, mute_list=None):
+        if path in self.task_map:
+            return False
+        else:
+            mute_list = (mute_list or []) + DEFAULT_MUTE_LIST
+            keeper = ChangesKeeper(path, mute_list)
+            self.task_map[path] = keeper
+            self.observer.schedule(self, path, recursive=True)
+            return True
 
-    def get_changes_since(self, timestamp):
+    def remove_watch(self, path):
+        if path in self.task_map:
+            keeper = self.task_map[path]
+            watch = keeper.watch
+            self.observer.unschedule(watch)
+            return True
+        else:
+            return False
+
+    def get_changes_since(self, timestamp, parent_path=None):
         ret = []
         for change in self.changes:
-            if change.timestamp > timestamp:
+            if change.timestamp > timestamp and (not parent_path or path_is_parent(parent_path, change.path)):
                 ret.append(change)
         return ret
 
@@ -41,10 +59,11 @@ class ChangesWatcher(FileSystemEventHandler):
         """
 
         # 如果是黑名单及黑名单子目录的change，则跳过
-        for black_path in self.mute_list:
-            if path_is_parent(black_path, change.path):
-                print '...', change.type, change.path
-                return
+        for mute_list in [keeper.mute_list for keeper in self.task_map.values()]:
+            for mute_path in mute_list:
+                if path_is_parent(mute_path, change.path):
+                    print '...', change.type, change.path
+                    return
 
         # 寻找当前change对应的垃圾change，找到后删除；未找到则添加当前change
         trash_changes = self.find_related_trash_changes(change)
@@ -55,48 +74,47 @@ class ChangesWatcher(FileSystemEventHandler):
         else:
             self.changes.append(change)
             print '+  ', change.type, change.path
-            self.compile_if_necessary(change)
+            self.compile_if_needed(change)
 
         ioloop.IOLoop.instance().add_callback(lambda: self.remove_outdated_changes(30))
 
-    def compile_if_necessary(self, change):
+    def compile_if_needed(self, change):
         if change.type == EVENT_TYPE_DELETED:
             return
 
-        input_path = normalize_path(os.path.join(self.path, change.path))
+        input_path = normalize_path(change.path)
         base_path, ext = os.path.splitext(input_path)
         ext = ext.lower()
         if ext not in['.less', '.coffee']:
             return
 
-        active_project = self.application.active_project
-        if not active_project:
+        related_proejct = self.application.find_project(input_path)
+        if not related_proejct:
             return
 
         os.chdir(APP_FOLDER)
         begin_time = time.time()
         if ext == '.less':
-            if active_project.compileLess:
+            if related_proejct.compileLess:
                 output_path = base_path + '.css'
                 run_cmd('%s bundled/less/bin/lessc %s %s' % (NODE_BIN_PATH, input_path, output_path))
-                print 'compile:', change.path, time.time() - begin_time, 'seconds'
+                print 'less ->- css', change.path, time.time() - begin_time, 'seconds'
             else:
-                print 'skip compile', change.path, '(OFF by settings)'
+                print 'less -X- css', change.path, '(OFF by settings)'
 
         elif ext == '.coffee':
-            if active_project.compileCoffee:
+            if related_proejct.compileCoffee:
                 run_cmd('%s bundled/coffee/bin/coffee --compile %s' % (NODE_BIN_PATH, input_path))
-                print 'compile:', change.path, time.time() - begin_time, 'seconds'
+                print 'coffee ->- js', change.path, time.time() - begin_time, 'seconds'
             else:
-                print 'skip compile', change.path, '(OFF by settings)'
+                print 'coffee -X- js', change.path, '(OFF by settings)'
 
-    def if_folder_changed(self, folder_path):
-        if sys.platform.startswith('win'):
+    def check_folder_change(self, folder_path):
+        if sys.platform.startswith('win') or \
+                not os.path.isdir(folder_path):
             return
-        if not os.path.isdir(folder_path):
-            return  # ignore
 
-        now = time.time() - 2.5  # 2.5秒内的都算修改
+        now = time.time() - 0.5  # 0.5秒内的都算修改
         for filename in os.listdir(folder_path):
             file_path = os.path.join(folder_path, filename)
             if not os.path.isfile(file_path):
@@ -108,7 +126,7 @@ class ChangesWatcher(FileSystemEventHandler):
 
     def on_any_event(self, event):
         if event.is_directory:
-            self.if_folder_changed(event.src_path)
+            self.check_folder_change(event.src_path)
             return
 
         # 暂停文件变更的上报, 以免中途编译占用太长时间，而将事件提前返回
@@ -117,14 +135,23 @@ class ChangesWatcher(FileSystemEventHandler):
             ioloop.IOLoop.instance().remove_timeout(self.changes_timer)
 
         now = time.time()
-        src_relative_path = get_rel_path(event.src_path, self.path)
-
         if event.event_type == EVENT_TYPE_MOVED:
-            self.add_pure_change(Change(dict(timestamp=now, path=src_relative_path, type=EVENT_TYPE_DELETED)))
-            dest_relative_path = get_rel_path(event.dest_path, self.path)
-            self.add_pure_change(Change(dict(timestamp=now, path=dest_relative_path, type=EVENT_TYPE_CREATED)))
+            self.add_pure_change(Change(dict(
+                timestamp=now,
+                path=normalize_path(event.src_path),
+                type=EVENT_TYPE_DELETED
+            )))
+            self.add_pure_change(Change(dict(
+                timestamp=now,
+                path=normalize_path(event.dest_path),
+                type=EVENT_TYPE_CREATED
+            )))
         else:
-            self.add_pure_change(Change(dict(timestamp=now, path=src_relative_path, type=event.event_type)))
+            self.add_pure_change(Change(dict(
+                timestamp=now,
+                path=normalize_path(event.src_path),
+                type=event.event_type
+            )))
 
         # 延迟0.1秒上报变更，防止有些事件连续发生时错过
         self.changes_timer = loop.add_timeout(time.time() + 0.1, self.application.project_file_changed)
@@ -137,16 +164,16 @@ class ChangesWatcher(FileSystemEventHandler):
         for old_change in self.changes[::-1]:
             if old_change.path != change.path:
                 continue
-            if change.timestamp - old_change.timestamp > 1:
+            if change.timestamp > old_change.timestamp + 1:
                 break
 
             if change.type == EVENT_TYPE_DELETED:
-                # 如果当前change类型是DELETED，那么返回所有该文件的change事件，直到CREATED事件为止
+                # 如果当前change类型是DELETED，那么返回所有该文件的事件，直到CREATED事件为止
                 trash_changes.append(old_change)
                 if old_change.type == EVENT_TYPE_CREATED:
                     return trash_changes
             elif change.type == EVENT_TYPE_CREATED:
-                # 如果当前change类型是CREATED，那么返回所有该文件的change事件，直到DELETED事件为止
+                # 如果当前change类型是CREATED，那么返回所有该文件的事件，直到DELETED事件为止
                 trash_changes.append(old_change)
                 if old_change.type == EVENT_TYPE_DELETED:
                     return trash_changes
@@ -156,3 +183,7 @@ class ChangesWatcher(FileSystemEventHandler):
         for change in self.changes[:]:
             if change.timestamp - time.time() > seconds:
                 self.changes.remove(change)
+
+
+if __name__ == '__main__':
+    pass
