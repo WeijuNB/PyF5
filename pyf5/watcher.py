@@ -35,8 +35,10 @@ class ChangesWatcher(FileSystemEventHandler):
             mute_list = (mute_list or []) + DEFAULT_MUTE_LIST
             keeper = ChangesKeeper(path, mute_list)
             self.task_map[path] = keeper
-            self.observer.schedule(self, path, recursive=True)
-            return True
+            if os.path.exists(path):
+                self.observer.schedule(self, path, recursive=True)
+                return True
+            return False
 
     def remove_watch(self, path):
         if path in self.task_map:
