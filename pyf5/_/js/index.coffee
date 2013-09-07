@@ -1,3 +1,7 @@
+if $.browser.msie
+    console =
+        log: (rest...) => null
+
 joinPath = (p1, p2) ->
     path = [p1, p2].join '/'
     path = path.replace /\/+/g, '/'
@@ -145,15 +149,11 @@ ProjectModel = (data, root) ->
         if newValue
             $('#qrcode-modal')
                 .modal()
+            root.updateQRCode newValue.QRurl()
 
     @QRUrlChange = (item, event) =>
         text = $('#qrurl-input').val()
-        $el = $('#qrcode')
-        $el.empty().qrcode(
-            width:$el.width(),
-            height:$el.height(),
-            text:text
-        )
+        root.updateQRCode text
 
     @showQRCode = (item, event) =>
         @QRCodeFile item
@@ -266,8 +266,20 @@ ViewModel = ->
         else
             alert '请输入路径'
 
+    @updateQRCode = (text) =>
+        $el = $ '#qrcode'
+
+        if not @qrcode
+            @qrcode = new QRCode $el[0], {
+                width:$el.width()
+                height:$el.height()
+                text: ''
+            }
+        @qrcode.makeCode text or ''
+
     @queryLocalHosts()
     @queryProjects()
+
     @
 
 

@@ -1,3 +1,7 @@
+if $.browser.msie
+    console =
+        log: (rest...) => null
+
 postAPI = (cmd, params, success_handler, error_handler) ->
     url = "/_/api/#{cmd}"
     $.post(url, params
