@@ -1,5 +1,5 @@
 if $.browser.msie
-    console =
+    window.console =
         log: (rest...) => null
 
 postAPI = (cmd, params, success_handler, error_handler) ->

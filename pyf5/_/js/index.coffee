@@ -1,5 +1,5 @@
 if $.browser.msie
-    console =
+    window.console =
         log: (rest...) => null
 
 joinPath = (p1, p2) ->
