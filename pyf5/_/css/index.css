@@ -1,0 +1,143 @@
+body {
+  overflow-y: scroll;
+  font-size: 13px;
+}
+h1,
+h2,
+h3 {
+  font-family: "Microsoft Yahei";
+}
+.icon {
+  display: inline-block;
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-image: url("/_/img/file-icons/unknown.png");
+}
+.icon.DIR {
+  background-image: url("/_/img/file-icons/DIR.png");
+}
+.icon.html,
+.icon.htm {
+  background-image: url("/_/img/file-icons/html.png");
+}
+.icon.js,
+.icon.vbs {
+  background-image: url("/_/img/file-icons/js.png");
+}
+.icon.css,
+.icon.less {
+  background-image: url("/_/img/file-icons/css.png");
+}
+.icon.php {
+  background-image: url("/_/img/file-icons/php.png");
+}
+.icon.as3,
+.icon *.fla,
+.icon *.swf {
+  background-image: url("/_/img/file-icons/flash.png");
+}
+.navbar .container {
+  text-align: center;
+}
+.projects-box form.add-project {
+  margin-bottom: 20px;
+}
+.projects-box .list-group .list-group-item {
+  overflow-x: hidden;
+  position: relative;
+}
+.projects-box .list-group .list-group-item i {
+  position: absolute;
+  right: 7px;
+  top: 7px;
+  display: none;
+}
+.projects-box .list-group .list-group-item:hover i {
+  display: inline-block;
+}
+.project-box {
+  padding-top: 45px;
+}
+.project-box .tab-content {
+  padding-top: 20px;
+}
+.project-box .text-muted .glyphicon {
+  display: none;
+}
+.project-box .text-success .glyphicon {
+  display: inline-block;
+}
+.project-box .setting.label {
+  float: right;
+  margin-top: 10px;
+  margin-left: 5px;
+  font-weight: normal;
+  font-family: verdana;
+}
+.project-box #pane-files table.file-list td.file a {
+  padding-left: 20px;
+}
+.project-box #pane-files table.file-list td.op {
+  width: 70px;
+  text-align: right;
+}
+.project-box #pane-files table.file-list td.op a {
+  text-decoration: none;
+  margin-left: 3px;
+}
+.project-box #pane-files table.file-list td.op a.unmute {
+  color: #5CB85C;
+  display: none;
+}
+.project-box #pane-files table.file-list td.op a.mute {
+  color: #D9534F;
+}
+.project-box #pane-files table.file-list tr .op-group {
+  display: none;
+}
+.project-box #pane-files table.file-list tr:hover .op-group {
+  display: inline-block;
+}
+.project-box #pane-files table.file-list tr.muted .file a {
+  opacity: 0.3;
+  filter: alpha(@filter_opacity);
+}
+.project-box #pane-files table.file-list tr.muted a.unmute {
+  display: inline-block;
+}
+.project-box #pane-files table.file-list tr.muted a.mute {
+  display: none;
+}
+.project-box #pane-settings-project .target-host-setter {
+  width: 300px;
+}
+.project-box #pane-settings-compile .checkbox {
+  padding-bottom: 10px;
+}
+.project-box #pane-settings-compile .checkbox label {
+  font-weight: normal;
+}
+.project-box #pane-settings-compile .checkbox label input[type=checkbox] {
+  margin-top: 3px;
+}
+.project-box #pane-settings-compile .checkbox p {
+  margin-top: 5px;
+}
+.project-box #pane-settings-refresh .input-group {
+  width: 150px;
+}
+.project-box #pane-settings-refresh p {
+  margin-top: 5px;
+}
+#qrcode-modal .input-group {
+  width: 200px;
+}
+#qrcode-modal input[name=url] {
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+#qrcode-modal #qrcode {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto;
+}
