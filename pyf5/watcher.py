@@ -90,26 +90,26 @@ class ChangesWatcher(FileSystemEventHandler):
         if ext not in['.less', '.coffee']:
             return
 
-        related_proejct = self.application.find_project(input_path)
-        if not related_proejct:
+        project = self.application.find_project(input_path)
+        if not project:
             return
 
         os.chdir(APP_FOLDER)
         begin_time = time.time()
         if ext == '.less':
-            if related_proejct.compileLess:
+            if project.compileLess:
                 output_path = base_path + '.css'
                 run_cmd('%s bundled/less/bin/lessc %s %s' % (NODE_BIN_PATH, input_path, output_path))
-                print 'less ->- css', change.path, time.time() - begin_time, 'seconds'
+                print '.less ->- .css', change.path, time.time() - begin_time, 'seconds'
             else:
-                print 'less -X- css', change.path, '(OFF by settings)'
+                print '.less -X- .css', change.path, '(OFF by settings)'
 
         elif ext == '.coffee':
-            if related_proejct.compileCoffee:
+            if project.compileCoffee:
                 run_cmd('%s bundled/coffee/bin/coffee --compile %s' % (NODE_BIN_PATH, input_path))
-                print 'coffee ->- js', change.path, time.time() - begin_time, 'seconds'
+                print '.coffee ->- .js', change.path, time.time() - begin_time, 'seconds'
             else:
-                print 'coffee -X- js', change.path, '(OFF by settings)'
+                print '.coffee -X- .js', change.path, '(OFF by settings)'
 
     def check_folder_change(self, folder_path):
         if sys.platform.startswith('win') or \
