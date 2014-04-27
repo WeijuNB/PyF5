@@ -95,6 +95,8 @@ class F5Server(Application):
         self.watcher.add_watch(target_project.path, target_project.muteList)
         if CURRENT_MODE == DEVELOPMENT_MODE:
             self.watcher.add_watch(APP_FOLDER)
+
+        print 'load_project:', target_project
         return True
 
     def find_project(self, child_path):

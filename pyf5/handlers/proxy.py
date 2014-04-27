@@ -36,7 +36,8 @@ class ForwardRequestHandler(tornado.web.RequestHandler):
                     if header not in [
                         'Transfer-Encoding',  # 防止 chunked
                         'Content-Encoding', 'Content-Length',  # 防止gzip
-                        'Etag', 'Expires', 'Last-Modified'  # 防止缓存
+                        'Etag', 'Expires', 'Last-Modified',  # 防止缓存
+                        'Set-Cookie'  # 后面cookie会另外处理
                     ]:
                         self.set_header(header, response.headers.get(header))
 
@@ -51,10 +52,8 @@ class ForwardRequestHandler(tornado.web.RequestHandler):
                         if len(raw_cookie_list) == 1:
                             self.set_header('Set-Cookie', response.headers.get(header))
                         elif len(raw_cookie_list) > 1:
-                            if not hasattr(self, "_new_cookie"):
-                                self._new_cookie = Cookie.SimpleCookie()
-                                for raw_cookie in raw_cookie_list:
-                                    self._new_cookie.load(raw_cookie)
+                            for raw_cookie in raw_cookie_list:
+                                self.add_header('Set-Cookie', raw_cookie)
 
                 if response.body:
                     content_type = response.headers.get('Content-Type', '')
