@@ -35,23 +35,22 @@
         return deferred.promise;
       };
       return {
-        os: {
-          f5Version: function() {
-            return query('os/f5Version');
-          },
-          listDir: function(path) {
-            return query('os/listDir', {
+        app: {
+          ver: function() {
+            return query('app/ver');
+          }
+        },
+        fs: {
+          list: function(path) {
+            return query('fs/list', {
               path: path
             });
           },
-          writeFile: function(path, content) {
-            return query('os/writeFile', {
+          save: function(path, content) {
+            return query('fs/save', {
               path: path,
               content: content
             });
-          },
-          localHosts: function() {
-            return query('os/localHosts');
           }
         },
         project: {

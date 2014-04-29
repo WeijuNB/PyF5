@@ -2,7 +2,7 @@
 (function() {
   var libs, main;
 
-  libs = ['underscore', 'angular', 'services/api', 'ngRoute', 'mgcrea.ngStrap', 'controllers/IndexController', 'directives/project'];
+  libs = ['underscore', 'angular', 'services/api', 'ngRoute', 'mgcrea.ngStrap', 'controllers/IndexController', 'controllers/FilesController', 'controllers/SettingsController', 'directives/project'];
 
   main = function(_, angular) {
     var index;

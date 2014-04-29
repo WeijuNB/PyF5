@@ -4,46 +4,17 @@
   filter: ~"alpha(@filter_opacity)";
 }
 
-body{
-  overflow-y:scroll;
+[ng-cloak] {
+  display: none;
+}
+
+body {
+  overflow-y: scroll;
   font-size: 13px;
 }
 
-h1, h2, h3 {
+h1, h2, h3, h4, h5 {
   font-family: "Microsoft Yahei";
-}
-
-.icon{
-  display: inline-block;
-  background-repeat: no-repeat;
-  background-position: left center;
-  background-image: url("/_/img/file-icons/unknown.png");
-
-  &.DIR{
-    background-image: url("/_/img/file-icons/DIR.png");
-  }
-  &.html, &.htm {
-    background-image: url("/_/img/file-icons/html.png");
-  }
-  &.js, &.vbs {
-    background-image: url("/_/img/file-icons/js.png");
-  }
-  &.css, &.less {
-    background-image: url("/_/img/file-icons/css.png");
-  }
-  &.php {
-    background-image: url("/_/img/file-icons/php.png");
-  }
-  &.as3, *.fla, *.swf {
-    background-image: url("/_/img/file-icons/flash.png");
-  }
-}
-
-
-.navbar {
-  .container {
-    text-align: center;
-  }
 }
 
 .projects-box {
@@ -70,123 +41,83 @@ h1, h2, h3 {
   }
 }
 
-.project-box {
-  padding-top: 45px;
+.files-box {
+  td.file {
+    cursor: pointer;
+    color: #428BCA;
 
-  .tab-content {
-    padding-top: 20px;
-  }
+    .icon {
+      display: inline-block;
+      width: 16px;
+      height: 18px;
+      background-repeat: no-repeat;
+      background-position: left center;
+      background-image: url("/_/img/file-icons/unknown.png");
+    }
+    &.DIR {
 
-  .text-muted .glyphicon {
-    display: none;
-  }
-  .text-success .glyphicon {
-    display: inline-block;
-  }
-
-  .setting.label {
-    float: right;
-    margin-top: 10px;
-    margin-left: 5px;
-    font-weight: normal;
-    font-family: verdana;
-  }
-
-  #pane-files {
-    table.file-list {
-      td.file {
-        a {
-          padding-left: 20px;
-        }
-      }
-
-      td.op {
-        width: 70px;
-        text-align: right;
-
-        a {
-          text-decoration: none;
-          margin-left: 3px;
-        }
-        a.unmute {
-          color: #5CB85C;
-          display: none;
-        }
-        a.mute {
-          color: #D9534F;
-        }
-      }
-
-      tr .op-group{
-        display: none;
-      }
-      tr:hover .op-group {
-        display: inline-block;
-      }
-
-      tr.muted {
-        .file a {
-          .opacity(0.3);
-        }
-
-        a.unmute {
-          display: inline-block;
-        }
-        a.mute {
-          display: none;
-        }
+      .icon {
+        background-image: url("/_/img/file-icons/DIR.png");
       }
     }
-  }
-
-  #pane-settings-project {
-    .target-host-setter {
-      width: 300px;
-    }
-  }
-
-  #pane-settings-compile {
-    .checkbox {
-      padding-bottom: 10px;
-
-      label {
-        font-weight: normal;
-
-        input[type=checkbox] {
-          margin-top: 3px;
-        }
+    &.html, &.htm {
+      .icon {
+        background-image: url("/_/img/file-icons/html.png");
       }
-      p {
-        margin-top: 5px;
+    }
+    &.js, &.vbs {
+      .icon {
+        background-image: url("/_/img/file-icons/js.png");
       }
+    }
+    &.css, &.less {
+      .icon {
+        background-image: url("/_/img/file-icons/css.png");
+      }
+    }
+    &.php {
+      .icon {
+        background-image: url("/_/img/file-icons/php.png");
+      }
+    }
+    &.as3, &.fla, &.swf {
+      .icon {
+        background-image: url("/_/img/file-icons/flash.png");
+      }
+    }
+    &.png, &.jpg, &.jpeg, &.gif, &.ico {
+      .icon {
+        background-image: url("/_/img/file-icons/img.png");
+      }
+    }
 
-    }
-  }
-
-  #pane-settings-refresh {
-    .input-group {
-      width: 150px;
-    }
-    p {
-      margin-top: 5px;
-    }
   }
 }
 
+.settings-box {
+  margin-top: 10px;
 
-#qrcode-modal {
-  .input-group {
-    width: 200px;
+  .type-setting {
+    .btn-group {
+      margin-bottom: 10px;
+
+      i {
+        display: none;
+        margin-right: 5px;
+      }
+      .active i {
+        display: inline-block;
+      }
+
+
+    }
+    .alert {
+      padding: 5px 10px;
+      margin: 5px;
+    }
+    .help-block { height: 20px; }
   }
 
-  input[name=url] {
-    margin-top: 10px;
-    margin-bottom: 20px;
-  }
 
-  #qrcode {
-    width: 150px;
-    height: 150px;
-    margin: 0 auto;
-  }
+
 }

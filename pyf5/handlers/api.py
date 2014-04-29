@@ -1,9 +1,10 @@
 #coding:utf-8
 from __future__ import absolute_import, division, print_function
-from functools import partial
+import os
 import json
 import socket
 import time
+from functools import partial
 
 from tornado import ioloop
 from tornado.httpclient import AsyncHTTPClient
@@ -11,8 +12,8 @@ from tornado.web import RequestHandler, asynchronous, os, HTTPError
 
 
 from ..config import config
-from ..settings import CONFIG_PATH
-from ..utils import jsonable, normalize_path
+from ..settings import VERSION, RESOURCE_FOLDER
+from ..utils import normalize_path
 from ..logger import *
 from .base import BaseRequestHandler
 
@@ -57,7 +58,10 @@ class ProjectAPIHandler(BaseAPIHandler):
         if not project:
             config['projects'].append({
                 'path': path
+                'mode': 'static'
             })
+            if len(config['projects']) == 1:
+                config['projects'][0]['active'] = True
             config.flush()
             return self.finish_json({'success': True})
         else:
@@ -97,137 +101,31 @@ class ProjectAPIHandler(BaseAPIHandler):
 
 
 class FileSystemAPIHandler(BaseAPIHandler):
-    def dir_list(self, path):
-        pass
-
-    def file_write(self, path, content):
-        pass
-
-
-class AppAPIHandler(BaseAPIHandler):
-    def ver(self):
-        pass
-
-
-class APIRequestHandler(RequestHandler):
-    def initialize(self):
-        self.API_MAPPING = {
-            'os': OSAPI,
-            'project': ProjectAPI,
-            'url': UrlAPI,
-        }
-
-    def setup(self):
-        pass
-
-    def handle_request(self):
-        if self.request.headers.get('Origin'):
-            self.set_header('Access-Control-Allow-Origin', self.request.headers.get('Origin'))
-            self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
-            self.set_header('Access-Control-Allow-Headers', 'Content-Type')
-
-        cmd_parts = self.path_args[0].split('/')
-        if len(cmd_parts) > 2:
-            return self.respond_error(INVALID_CMD, u'API路径不正确')
-        method = cmd_parts[-1]
-        category = cmd_parts[0] if len(cmd_parts) == 2 else None
-
-        APIClass = self.API_MAPPING.get(category)
-        if APIClass:
-            self.__class__ = APIClass
-            self.setup()
-
-        apply(self.__getattribute__(method))
-
-    @asynchronous
-    def get(self, *args, **kwargs):
-        self.handle_request()
-
-    @asynchronous
-    def post(self, *args, **kwargs):
-        self.handle_request()
-
-    @asynchronous
-    def options(self, *args, **kwargs):
-        if self.request.headers.get('Origin'):
-            self.set_header('Access-Control-Allow-Origin', self.request.headers.get('Origin'))
-            self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
-            self.set_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.finish()
-
-    def respond_success(self, data=None):
-        if not data:
-            data = {}
-        data['status'] = 'ok'
-        self.respond_JSONP(data)
-
-    def respond_error(self, error_name, error_message):
-        data = {
-            'status': 'error',
-            'type': error_name,
-            'message': error_message
-        }
-        self.respond_JSONP(data)
-
-    def respond_JSONP(self, data):
-        self.application.log_request(self)
-        callback_name = self.get_argument('callback', None)
-        json_data = json.dumps(jsonable(data))
-        if callback_name:
-            ret = '%s(%s);' % (callback_name, json_data)
-        else:
-            ret = json_data
-        self.write(ret)
-        self.finish()
-
-
-class OSAPI(APIRequestHandler):
-    def f5Version(self):
-        return self.respond_success({'version': self.application.settings['version']})
-
-    def listDir(self):
-        path = self.get_argument('path', '')
-        if not path:
-            return self.respond_error(INVALID_PARAMS, u'缺少path参数')
-        if not os.path.exists(path):
-            return self.respond_error(PATH_NOT_EXISTS, u'目录不存在:' + path)
-        if not os.path.isdir(path):
-            return self.respond_error(PATH_IS_NOT_DIR, u'路径不是目录')
-        path = normalize_path(path)
-
+    def list(self, path):
         ret = []
         for name in os.listdir(path):
             abs_path = normalize_path(os.path.join(path, name))
             _, ext = os.path.splitext(name)
             is_dir = os.path.isdir(abs_path)
-            ret.append(dict(
-                name=name,
-                absolutePath=abs_path,
-                type='DIR' if is_dir else ext.replace('.', '').lower(),
-            ))
-        ret.sort(key=lambda item: (item['type'] != 'DIR', name))
-        return self.respond_success({'list': ret})
 
-    def writeFile(self):
-        path = self.get_argument('path', '')
-        content = self.get_argument('content', '')
-        if not path:
-            return self.respond_error(INVALID_PARAMS, u'缺少path参数')
-        if not os.path.exists(path):
-            return self.respond_error(PATH_NOT_EXISTS, u'路径不存在:' + path)
+            ret.append({
+                'name': name,
+                'type': 'DIR' if is_dir else ext.replace('.', '').lower()
+            })
+        ret.sort(key=lambda x: (x['type'] != 'DIR', name))
+        return self.finish_json(ret)
 
-        path = normalize_path(path)
+    def save(self, path, content):
         open(path, 'w').write(content.encode('utf-8'))
-        return self.respond_success()
-
-    def localHosts(self):
-        result = socket.gethostbyname_ex(socket.gethostname())
-        result = result[-1]
-        if '127.0.0.1' not in result:
-            result.insert(0, '127.0.0.1')
-        return self.respond_success({'hosts': result})
+        return self.finish_json({'success': True})
 
 
+class AppAPIHandler(BaseAPIHandler):
+    def ver(self):
+        self.finish_json(VERSION)
+
+
+'''
 class UrlAPI(APIRequestHandler):
     def setup(self):
         pass
@@ -249,3 +147,4 @@ class UrlAPI(APIRequestHandler):
             return self.respond_error('NOT_ALIVE', u'目标网址不可用')
         else:
             ioloop.IOLoop.instance().add_timeout(time.time() + 1, lambda: self.tryCheckAlive(url, count + 1))
+    '''

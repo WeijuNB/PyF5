@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>F5</title>
-    <link rel="icon" type="image/x-icon" href="/_/img/favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="/_/img/favicon.ico"/>
 
     <link href="/_/css/bootstrap.min.css" rel="stylesheet">
     <link href="/_/css/index.css" type="text/css" rel="stylesheet">
@@ -20,7 +20,7 @@
 <div id="body" class="container">
     <div class="row">
 
-        <div class="col-sm-5 projects-box">
+        <div class="col-sm-4 projects-box">
             <div class="page-header">
                 <h3>项目列表</h3>
             </div>
@@ -41,171 +41,111 @@
             </div>
         </div>
 
-        <div class="project-box col-sm-7" data-bind="with:activeProject">
-            <!-- ko if: targetHost -->
-            <a class="setting target-host label label-primary" href="/" target="_blank">
-                <span data-bind="text:$root.host"></span>
-                <i class="glyphicon glyphicon-arrow-right"></i>
-                <span data-bind="text:targetHost"></span>
-            </a>
-            <!-- /ko -->
+        <div class="files-box col-sm-5" ng-controller="FilesController">
+            <div class="page-header">
+                <h3>文件列表</h3>
+            </div>
 
-            <!-- ko if: compileLess -->
-            <span class="setting compile-less label label-success">
-                <span>less</span>
-                <i class="glyphicon glyphicon-arrow-right"></i>
-                <span>css</span>
-            </span>
-            <!-- /ko -->
-
-            <!-- ko if: compileCoffee -->
-            <span class="setting compile-coffee label label-success">
-                <span>coffee</span>
-                <i class="glyphicon glyphicon-arrow-right"></i>
-                <span>js</span>
-            </span>
-            <!-- /ko -->
-
-            <ul class="nav nav-tabs">
-                <li class="active">
-                    <a href="#pane-files" data-toggle="tab">文件列表</a>
-                </li>
+            <ol class="breadcrumb">
                 <li>
-                    <a href="#pane-settings" data-toggle="tab">设置</a>
+                    <a href="" ng-click="setRelativePath('')">
+                        <i class="glyphicon glyphicon-home"></i>
+                    </a>
                 </li>
-            </ul>
+                <li ng-repeat="level in levels" ng-class="{'active': $last}">
+                    <a ng-if="!$last" href="" ng-click="setRelativePath(level.relativePath)">{{ level.name }}</a>
+                    <span ng-if="$last">{{ level.name }}</span>
+                </li>
+            </ol>
 
-            <div class="tab-content">
+            <table class="table table-hover">
+                <tbody>
+                <tr ng-repeat="item in list">
+                    <td class="file" ng-class="item.type" ng-click="click(item)">
+                        <i class="icon"></i>
+                        {{ item.name }}
+                    </td>
+                    <td class="op"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
 
-                <div class="tab-pane active" id="pane-files">
-                    <ul class="breadcrumb">
-                        <li><a href="javascript:" data-bind="text:path, click: goRoot"></a></li>
-                        <!-- ko foreach: folderSegments -->
-                        <li><a href="javascript:" data-bind="text: name, click: onClick"></a></li>
-                        <!-- /ko -->
-                    </ul>
+        <div class="settings-box col-sm-3" ng-controller="SettingsController" ng-show="project">
 
-                    <table class="file-list table table-hover">
-                        <tbody data-bind="foreach:files">
-                        <tr data-bind="css:{muted:isMuted}">
-                            <td class="file">
-                                <a href="javascript:" class="icon" target="_blank"
-                                   data-bind="text:name, css:type, click:onClick, attr:{href:url}"></a>
-                            </td>
-
-                            <td class="op">
-                                <div class="op-group">
-                                    <a href="javascript:" class="qrcode glyphicon glyphicon-qrcode"
-                                       data-toggle="tooltip" title="URL+二维码"
-                                       data-bind="click: $parent.showQRCode">
-                                    </a>
-                                    <a href="javascript:" class="mute glyphicon glyphicon-ban-circle"
-                                       data-toggle="tooltip" title="不监听更新"
-                                       data-bind="click:mute">
-                                    </a>
-                                    <a href="javascript:" class="unmute glyphicon glyphicon-ok-circle"
-                                       data-toggle="tooltip" title="监听更新"
-                                       data-bind="click:unmute">
-                                    </a>
-                                </div>
-                            </td>
-
-                        </tr>
-                        </tbody>
-                    </table>
+            <div class="type-setting">
+                <div class="page-header">
+                    <h5>项目类型</h5>
                 </div>
 
-                <div class="tab-pane" id="pane-settings">
+                <div class="btn-group btn-group-justified btn-group-sm"
+                     ng-model="project.mode" ng-cloak>
+                    <a href="" class="btn btn-default"
+                       ng-class="{active: project.mode!='dynamic'}"
+                       ng-mouseover="setHoveringMode('static')"
+                       ng-mouseleave="setHoveringMode(null)"
+                       ng-click="switchMode('static')">
+                        <i class="glyphicon glyphicon-ok text-primary"></i>
+                        静态项目
+                    </a>
+                    <a href="" class="btn btn-default"
+                       ng-class="{active: project.mode=='dynamic'}"
+                       ng-mouseover="setHoveringMode('dynamic')"
+                       ng-mouseleave="setHoveringMode(null)"
+                       ng-click="switchMode('dynamic')">
+                        <i class="glyphicon glyphicon-ok text-primary"></i>
+                        动态项目
+                    </a>
+                </div>
+                <div ng-if="project.mode == 'dynamic'" class="alert alert-info">
+                    <i class="glyphicon glyphicon-arrow-right"></i>
+                    <a href="http://{{project.host}}:{{project.port || 80}}" target="_blank" class="alert-link">
+                        {{ project.host }} : {{ project.port || 80 }}
+                    </a>
 
-                    <ul class="nav nav-pills">
-                        <li class="active">
-                            <a href="#pane-settings-project" data-toggle="tab">项目设置</a>
-                        </li>
-                        <li>
-                            <a href="#pane-settings-compile" data-toggle="tab">自动编译</a>
-                        </li>
-                        <li>
-                            <a href="#pane-settings-refresh" data-toggle="tab">刷新设置</a>
-                        </li>
-                    </ul>
+                    <a href="" ng-click="promptHostPort()" class="glyphicon glyphicon-cog pull-right"></a>
+                </div>
+                <span class="help-block">
+                    <span ng-if="hoveringMode=='static'">只使用HTML/CSS/JS的纯静态项目</span>
+                    <span ng-if="hoveringMode=='dynamic'">使用了PHP/ASP/ROR等服务器技术的项目</span>
+                </span>
+            </div>
 
-                    <div class="tab-content">
-                        <div class="tab-pane active" id="pane-settings-project">
-                            <p>
-                                如果您的网站是<b>纯静态项目</b>，那么无需任何设置，只要点击文件列表中的网页就能直接使用
-                            </p>
+            <div>
+                <div class="page-header">
+                    <h5>编译设置</h5>
+                </div>
 
-                            <hr>
-
-                            <p>
-                                如果您的项目使用到了<b>服务器技术</b>（如php），请设置该服务器的域名和端口：
-                                <form data-bind="submit: submitTargetHost">
-                                    <div class="target-host-setter input-group">
-                                        <input class="form-control" type="text" id="target-host-input"
-                                               placeholder="somedomain.com:8080"
-                                               data-bind="attr:{value:targetHost}">
-                                        <div class="input-group-btn">
-                                            <button class="btn btn-success" type="submit">保存</button>
-                                            <button class="btn btn-default" data-bind="click: clearTargetHost">清除</button>
-                                        </div>
-                                    </div>
-                                </form>
-
-                                <p class="text-muted">
-                                    设定完成之后，访问F5所在域名就相当于访问映射的域名和端口（并加上自动刷新功能）
-                                </p>
-                            </p>
-
-                            <hr>
-
-                            <p>
-                                如果不方便映射，也可以简单粗暴地在网页的&lt;/body&gt;之前插入如下代码来实现自动刷新:
-                                <pre>&lt;script src="http://<span data-bind="text:$root.host"></span>/_/js/reloader.js"&gt;&lt;/script&gt;</pre>
-                                <span class="text-muted">如果不是本机访问，请修改上述地址的host部分</span>
-                            </p>
-                        </div>
-
-                        <div class="tab-pane" id="pane-settings-compile">
-                            <legend>Less</legend>
-                            <div class="checkbox">
-                                <label data-bind="click: onCompileCheckboxClick">
-                                    <input type="checkbox" data-bind="checked:compileLess"> 开启自动编译
-                                </label>
-                                <p class="text-muted" data-bind="css:{'text-muted': !compileLess(), 'text-success': compileLess()}">
-                                    <i class="glyphicon glyphicon-ok"></i>
-                                    变更后的.less文件将自动编译为.css文件（同目录）
-                                </p>
-                            </div>
-
-                            <legend>CoffeeScript</legend>
-                            <div class="checkbox">
-                                <label data-bind="click:onCompileCheckboxClick">
-                                    <input type="checkbox" data-bind="checked:compileCoffee"> 开启自动编译
-                                </label>
-                                <p class="text-muted" data-bind="css:{'text-muted': !compileCoffee(), 'text-success': compileCoffee()}">
-                                    <i class="glyphicon glyphicon-ok"></i>
-                                    变更后的.coffee文件将自动编译为.js文件（同目录）
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="tab-pane" id="pane-settings-refresh">
-                            <legend><b>延迟刷新</b></legend>
-                            <div class="input-group">
-                                <span class="input-group-addon">等待</span>
-                                <input class="form-control" type="text" data-bind="value: delay">
-                                <span class="input-group-addon">秒</span>
-                            </div>
-                            <p class="text-muted" data-bind="css:{'text-muted': !delay(), 'text-success': delay()}">
-                                <i class="glyphicon glyphicon-ok"></i>
-                                检测到文件变更以后，会等待一段时间后，再更新样式和内容
-                            </p>
-                        </div>
-
+                <div class="form-group">
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox"> 自动编译 .less 文件
+                        </label>
                     </div>
+                </div>
 
+                <div class="form-group">
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox"> 自动编译 .coffee 文件
+                        </label>
+                    </div>
                 </div>
             </div>
+
+            <div>
+                <div class="page-header">
+                    <h5>刷新设置</h5>
+                </div>
+
+                <select class="form-control input-sm"
+                        ng-model="model.delayOption"
+                        ng-options="option.name for option in delayOptions">
+                    <option value="">立即刷新（不延迟）</option>
+                </select>
+            </div>
+
+
         </div>
     </div>
 </div>

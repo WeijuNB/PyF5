@@ -302,7 +302,11 @@
 
 
 libs = ['underscore', 'angular', 'services/api', 'ngRoute', 'mgcrea.ngStrap'
-    'controllers/IndexController', 'directives/project'
+    'controllers/IndexController',
+    'controllers/FilesController',
+    'controllers/SettingsController',
+
+    'directives/project'
 ]
 main = (_, angular) ->
     index = angular.module 'index', ['ngRoute', 'mgcrea.ngStrap', 'app']

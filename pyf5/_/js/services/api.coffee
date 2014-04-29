@@ -24,15 +24,14 @@ define libs, (angular, app) ->
             return deferred.promise
 
         return {
-            os:
-                f5Version: ->
-                    query 'os/f5Version'
-                listDir: (path) ->
-                    query 'os/listDir', path:path
-                writeFile: (path, content) ->
-                    query 'os/writeFile', path:path, content:content
-                localHosts: ->
-                    query 'os/localHosts'
+            app:
+                ver: ->
+                    query 'app/ver'
+            fs:
+                list: (path) ->
+                    query 'fs/list', path:path
+                save: (path, content) ->
+                    query 'fs/save', path:path, content:content
             project:
                 list: ->
                     query 'project/list'

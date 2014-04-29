@@ -41,6 +41,9 @@ projects: [
     {
         path: str
         active: bool
+        mode: 'static' / 'dynamic'
+        host: str,
+        port: int,
     }
 ],
 """
