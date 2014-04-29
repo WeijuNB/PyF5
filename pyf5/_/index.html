@@ -25,9 +25,11 @@
                 <h3>项目列表</h3>
             </div>
 
-            <form class="add-project" data-bind="submit: onSubmitProjectPath">
+            <form class="add-project" ng-submit="addProject(newProject.path)">
                 <div class="input-group">
-                    <input class="form-control" id="new-path-input" type="text" placeholder="请输入项目所在目录...">
+                    <input class="form-control" id="new-path-input" type="text"
+                           ng-model="newProject.path"
+                           placeholder="请输入项目所在目录...">
                     <span class="input-group-btn">
                         <button class="btn btn-success" type="submit">添加</button>
                     </span>

@@ -8,6 +8,7 @@ import webbrowser
 from tornado import ioloop
 from tornado.httpserver import HTTPServer
 
+from pyf5.config import config
 from pyf5.server import application
 from pyf5.logger import *
 
@@ -39,4 +40,5 @@ if __name__ == '__main__':
     try:
         ioloop.IOLoop.instance().start()
     except KeyboardInterrupt:
+        config.flush()
         info('Exiting...')

@@ -1,4 +1,5 @@
 #coding:utf-8
+from __future__ import absolute_import, division, print_function
 from functools import partial
 import json
 import socket
@@ -6,19 +7,106 @@ import time
 
 from tornado import ioloop
 from tornado.httpclient import AsyncHTTPClient
-from tornado.web import RequestHandler, asynchronous, os
-
-from pyf5.settings import CONFIG_PATH
-from pyf5.models import Project
-from pyf5.utils import jsonable, normalize_path
+from tornado.web import RequestHandler, asynchronous, os, HTTPError
 
 
-PATH_NOT_EXISTS = 'PATH_NOT_EXISTS'
-INVALID_PARAMS = 'INVALID_PARAMS'
-INVALID_CMD = 'INVALID_CMD'
-PATH_IS_NOT_DIR = 'PATH_IS_NOT_DIR'
-PROJECT_NOT_EXISTS = 'PROJECT_NOT_EXISTS'
-PROJECT_EXISTS = 'PROJECT_EXISTS'
+from ..config import config
+from ..settings import CONFIG_PATH
+from ..utils import jsonable, normalize_path
+from ..logger import *
+from .base import BaseRequestHandler
+
+
+class BaseAPIHandler(BaseRequestHandler):
+    def handle(self, path):
+        if not path:
+            self.default()
+        else:
+            path = path.replace('.', '_').replace('/', '_')
+            if path.startswith('_') or path in dir(BaseRequestHandler):
+                raise HTTPError(500, 'ILLEGAL_PATH')
+            elif hasattr(self, path):
+                data = self.request.arguments
+                for key in data:
+                    if type(data[key]) == list and len(data[key]) == 1:
+                        data[key] = data[key][0]
+                if self.request.method == 'POST':
+                    try:
+                        json_data = json.loads(self.request.body)
+                        data.update(json_data)
+                    except:
+                        pass
+                debug('[' + self.__class__.__name__ + ']', '<-', path, data)
+                self.__getattribute__(path)(**data)
+            else:
+                raise HTTPError(404)
+
+    def echo(self, **kwargs):
+        self.finish_json(kwargs)
+
+
+class ProjectAPIHandler(BaseAPIHandler):
+    def list(self):
+        return self.finish_json(
+            config.get('projects', [])
+        )
+
+    def add(self, path):
+        path = normalize_path(path)
+        project = config.find_project(path)
+        if not project:
+            config['projects'].append({
+                'path': path
+            })
+            config.flush()
+            return self.finish_json({'success': True})
+        else:
+            return self.finish_json({'error': 'Project Already Existed'})
+
+    def select(self, path):
+        path = normalize_path(path)
+        project = config.find_project(path)
+        if project:
+            for p in config['projects']:
+                p['active'] = False
+            project['active'] = True
+            config.flush()
+            self.finish_json({'success': True})
+        else:
+            self.finish_json({'error': 'Project Not Found'})
+
+    def update(self, path, options):
+        path = normalize_path(path)
+        project = config.find_project(path)
+        if not project:
+            return self.finish_json({'error': 'Project Not Found'})
+
+        project.update(options)
+        config.flush()
+        return self.finish_json({'success': True})
+
+    def remove(self, path):
+        path = normalize_path(path)
+        project = config.find_project(path)
+        if project:
+            config['projects'].remove(project)
+            config.flush()
+            return self.finish_json({'success': True})
+        else:
+            return self.finish_json({'error': 'Project Not Found'})
+
+
+class FileSystemAPIHandler(BaseAPIHandler):
+    def dir_list(self, path):
+        pass
+
+    def file_write(self, path, content):
+        pass
+
+
+class AppAPIHandler(BaseAPIHandler):
+    def ver(self):
+        pass
 
 
 class APIRequestHandler(RequestHandler):
@@ -91,7 +179,6 @@ class APIRequestHandler(RequestHandler):
             ret = json_data
         self.write(ret)
         self.finish()
-        print 'API:', self.request.uri, self.request.arguments
 
 
 class OSAPI(APIRequestHandler):
@@ -139,92 +226,6 @@ class OSAPI(APIRequestHandler):
         if '127.0.0.1' not in result:
             result.insert(0, '127.0.0.1')
         return self.respond_success({'hosts': result})
-
-
-class ProjectAPI(APIRequestHandler):
-    def setup(self):
-        self.config = self.application.config
-        self.projects = self.config.projects
-
-    def _save_config(self):
-        self.application.config.save(CONFIG_PATH)
-
-    def _get_path_argument(self, argument_name, ensure_exists=False):
-        path = self.get_argument(argument_name, '')
-        if not path:
-            self.respond_error(INVALID_PARAMS, u'缺少%s参数' % argument_name)
-            return
-
-        if ensure_exists and not os.path.exists(path):
-            self.respond_error(INVALID_PARAMS, u'路径不存在：%s' % path)
-            return
-
-        return normalize_path(path)
-
-    def _find(self, path):
-        for project in self.projects:
-            if project.path == path:
-                return project
-
-    def list(self):
-        for project in self.projects:
-            project.active = project == self.application.active_project
-        self.respond_success({'projects': self.projects})
-
-    def add(self):
-        path = self._get_path_argument('path', True)
-        if not path:
-            return
-
-        if path[-1] == '/':
-            path = path[:-1]
-
-        if self._find(path):
-            return self.respond_error(PROJECT_EXISTS, u'项目已存在')
-
-        project = Project({'path': path})
-        self.projects.append(project)
-        self.application.watcher.add_watch(project.path)
-
-        self._save_config()
-        self.respond_success({'project': project})
-
-    def update(self):
-        project = self.get_argument('project', None)
-        try:
-            data = json.loads(project)
-            project = Project(data)
-        except Exception:
-            return self.respond_error(INVALID_PARAMS, u'project参数不正确')
-
-        found_index = -1
-        for i, p in enumerate(self.projects):
-            if p.path == project.path:
-                found_index = i
-        if found_index == -1:
-            return self.respond_error(PROJECT_NOT_EXISTS, u'项目不存在')
-
-        self.projects[found_index] = project
-        if project.active:
-            for p in self.projects:
-                if p != project:
-                    p.active = False
-            self.application.load_project(project)
-
-        self._save_config()
-        return self.respond_success()
-
-    def remove(self):
-        path = self._get_path_argument('path')
-        if not path:
-            return
-
-        project = self._find(path)
-        if project:
-            self.projects.remove(project)
-            self.application.watcher.remove_watch(project.path)
-        self._save_config()
-        return self.list()
 
 
 class UrlAPI(APIRequestHandler):

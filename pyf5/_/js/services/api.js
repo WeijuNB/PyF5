@@ -6,16 +6,33 @@
 
   define(libs, function(angular, app) {
     var api;
-    api = function($http) {
+    api = function($http, $q, $log) {
       var API_URL, query;
       API_URL = '/_/api/';
       query = function(cmd, params) {
+        var deferred;
         if (params == null) {
           params = {};
         }
-        return $http.get(API_URL + cmd, {
-          params: params
+        deferred = $q.defer();
+        $http.post(API_URL + cmd, params).then(function(resp) {
+          if (resp.status !== 200) {
+            $log.error(cmd, params, '->', resp);
+            deferred.reject("HTTP ERROR: " + resp.status);
+            return alert("HTTP ERROR: " + resp.status);
+          } else if (resp.data.error) {
+            $log.error(cmd, params, '->', resp);
+            deferred.reject(resp.data.error);
+            return alert(resp.data.error);
+          } else {
+            return deferred.resolve(resp.data);
+          }
+        }, function(resp) {
+          $log.error(cmd, params, '->', resp);
+          deferred.reject("HTTP ERROR: " + resp.status);
+          return alert("HTTP ERROR: " + resp.status);
         });
+        return deferred.promise;
       };
       return {
         os: {
@@ -43,6 +60,11 @@
           },
           add: function(projectPath) {
             return query('project/add', {
+              path: projectPath
+            });
+          },
+          select: function(projectPath) {
+            return query('project/select', {
               path: projectPath
             });
           },

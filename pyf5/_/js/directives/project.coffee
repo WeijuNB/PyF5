@@ -8,20 +8,15 @@ define libs, (angular, app) ->
         replace: true
         templateUrl: '/_/views/_project.html'
         link: (scope, elem, attrs) ->
-            console.log 'fuck', scope
-
-            scope.isActive = ->
-                return scope.$root.currentProject?.path == scope.model.path
-
             scope.select = ->
-                scope.$root.currentProject = scope.model
+                api.project.select(scope.model.path).then (data) ->
+                    scope.$root.loadProjects()
 
             scope.remove = ($event) ->
-                console.log api
                 api.project.remove(scope.model.path).then ->
-                    scope.$root.listProjects()
-                $event.preventDefault()
+                    scope.$root.loadProjects()
                 $event.stopPropagation()
+                $event.preventDefault()
 
 
     app.directive 'project', project

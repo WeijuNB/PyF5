@@ -8,15 +8,21 @@
     var IndexController;
     IndexController = function($rootScope, $scope, api) {
       $rootScope.projects = [];
-      $rootScope.currentProject = null;
-      $rootScope.listProjects = function() {
-        return api.project.list().then(function(resp) {
-          if (resp.status === 200 && !resp.data.error) {
-            return $rootScope.projects = resp.data.projects;
-          }
+      $rootScope.loadProjects = function() {
+        return api.project.list().then(function(data) {
+          return $rootScope.projects = data;
         });
       };
-      return $rootScope.listProjects();
+      $scope.newProject = {
+        path: ''
+      };
+      $scope.addProject = function(path) {
+        return api.project.add(path).then(function() {
+          $scope.newProject.path = '';
+          return $rootScope.loadProjects();
+        });
+      };
+      return $rootScope.loadProjects();
     };
     return app.controller('IndexController', IndexController);
   });

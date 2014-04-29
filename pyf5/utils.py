@@ -3,8 +3,8 @@ import os
 import sys
 import time
 from datetime import datetime
-from types import NoneType
-from schematics.models import Model
+
+import six
 
 
 def get_rel_path(path, start_path):
@@ -28,44 +28,20 @@ def run_cmd(cmd):
 
 
 def jsonable(o):
-    """ 将对象转化为能直接json_encode的对象
-    """
+    """ 将对象转化为能直接json_encode的对象 """
     if isinstance(o, dict):
-        d = {}
-        for key in o:
-            d[key] = jsonable(o[key])
-        return d
+        return {key: jsonable(val) for key, val in o.items()}
     elif type(o) in [list, tuple]:
-        li = []
-        for i, item in enumerate(o):
-            li.append(jsonable(item))
-        return li
-    elif type(o) in [str, unicode, NoneType, bool, int, long, float]:
-        return o
+        return [jsonable(item) for item in o]
     elif type(o) == datetime:
         return time.mktime(o.timetuple())
-    elif isinstance(o, Model):
-        return o.dict()
+    elif type(o) == six.types.GeneratorType:
+        return jsonable(list(o))
     else:
-        raise Exception('cant jsonable')
+        return o
 
 
-def config_path(app_folder):
-    f5_config_folder = app_folder
-    if sys.platform == 'win32':
-        app_data_folder = os.getenv('APPDATA')
-        if app_data_folder:
-            f5_config_folder = os.path.join(app_data_folder, 'F5')
-        elif os.path.expanduser("~"):
-            f5_config_folder = os.path.join(app_data_folder, os.path.expanduser("~"))
-    elif sys.platform in ('linux2', 'darwin'):
-        if os.getenv('HOME'):
-            f5_config_folder = os.getenv('HOME')
 
-    if not os.path.exists(f5_config_folder):
-        os.makedirs(f5_config_folder)
-
-    return os.path.join(f5_config_folder, '.f5config')
 
 
 if __name__ == '__main__':

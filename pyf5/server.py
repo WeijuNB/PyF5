@@ -7,7 +7,7 @@ from tornado import autoreload
 autoreload.start = lambda: None  # hack to disable autoreload and keep other debug feature intact
 
 from .settings import RESOURCE_FOLDER
-from .handlers.api import APIRequestHandler
+from .handlers.api import ProjectAPIHandler, FileSystemAPIHandler, AppAPIHandler
 from .handlers.changes import ChangeRequestHandler
 
 
@@ -23,7 +23,9 @@ class DashboardHandler(RequestHandler):
 
 routes = [
     (r'/_/change', ChangeRequestHandler),
-    (r'/_/api/(.*)', APIRequestHandler),
+    (r'/_/api/project/(.*)', ProjectAPIHandler),
+    (r'/_/api/fs/(.*)', FileSystemAPIHandler),
+    (r'/_/api/app/(.*)', AppAPIHandler),
     (r'/_/?', DashboardHandler),
     (r'/_/(.+)', ResourceHandler, {'path': RESOURCE_FOLDER}),
 ]

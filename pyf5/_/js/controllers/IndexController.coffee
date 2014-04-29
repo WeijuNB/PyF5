@@ -4,14 +4,17 @@ define libs, (angular, app) ->
     IndexController = ($rootScope, $scope, api) ->
         $rootScope.projects = []
 
-        $rootScope.currentProject = null
+        $rootScope.loadProjects = ->
+            api.project.list().then (data) ->
+                $rootScope.projects = data
 
-        $rootScope.listProjects = ->
-            api.project.list().then (resp) ->
-                if resp.status == 200 and not resp.data.error
-                    $rootScope.projects = resp.data.projects
+        $scope.newProject = path:''
+        $scope.addProject = (path) ->
+            api.project.add(path).then ->
+                $scope.newProject.path = ''
+                $rootScope.loadProjects()
 
-        $rootScope.listProjects()
+        $rootScope.loadProjects()
 
 
 
