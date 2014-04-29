@@ -15,8 +15,7 @@
     <script src="/_/js/libs/respond.min.js"></script>
     <![endif]-->
 </head>
-<body>
-
+<body ng-controller="IndexController">
 
 <div id="body" class="container">
     <div class="row">
@@ -35,14 +34,8 @@
                 </div>
             </form>
 
-            <div class="list-group" data-bind="foreach:projects">
-                <a href="javascript:" class="list-group-item"
-                   data-bind="css:{active:active}, click:onClick">
-                    <span data-bind="text:path"></span>
-                    <i class="btn btn-danger btn-sm glyphicon glyphicon-trash"
-                            title="从列表中去除" data-toggle="tooltip"
-                            data-bind="click: $root.askRemoveProject"></i>
-                </a>
+            <div class="list-group">
+                <project model="project" ng-repeat="project in projects"></project>
             </div>
         </div>
 
@@ -249,14 +242,8 @@
     </div>
 </div>
 
-<script src="/_/js/libs/json2.js"></script>
-<script src="/_/js/libs/jquery-1.8.2.min.js"></script>
-<script src="/_/js/libs/knockout-2.2.1.js"></script>
-<script src="/_/js/libs/jquery.cookie.js"></script>
-<script src="/_/js/libs/qrcode.js"></script>
-<script src="/_/js/libs/bootstrap.js"></script>
-<script src="/_/js/api.js"></script>
-<script src="/_/js/index.js"></script>
 
+<script src="/_/js/libs/require.js"
+        data-main="/_/js/index.js"></script>
 </body>
 </html>

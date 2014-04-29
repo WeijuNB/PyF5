@@ -1,0 +1,9 @@
+<a href="" class="list-group-item"
+   ng-class="{'active': isActive()}"
+   ng-click="select()">
+
+    <span>{{ model.path }} &nbsp;</span>
+    <i class="btn btn-danger btn-sm glyphicon glyphicon-trash"
+       bs-tooltip data-title="从列表中移除" data-placement="left"
+       ng-click="remove($event)"></i>
+</a>
