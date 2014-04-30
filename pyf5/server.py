@@ -1,26 +1,16 @@
 #coding:utf-8
 from __future__ import division, print_function, absolute_import
-import os
 
-from tornado.web import Application, StaticFileHandler, RequestHandler
+from tornado.web import Application
 from tornado import autoreload
+from handlers.app import ResourceHandler, DashboardHandler
+
 autoreload.start = lambda: None  # hack to disable autoreload and keep other debug feature intact
 
 from .settings import RESOURCE_FOLDER
 from .handlers.api import ProjectAPIHandler, FileSystemAPIHandler, AppAPIHandler
 from .handlers.changes import ChangeRequestHandler
 from .handlers.project import route_project_request
-
-
-class ResourceHandler(StaticFileHandler):
-    def set_extra_headers(self, path):
-        self.set_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-
-
-class DashboardHandler(RequestHandler):
-    def get(self, *args, **kwargs):
-        content = open(os.path.join(RESOURCE_FOLDER, 'index.html')).read()
-        self.write(content)
 
 
 routes = [

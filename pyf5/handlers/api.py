@@ -43,12 +43,12 @@ class BaseAPIHandler(BaseRequestHandler):
                 raise HTTPError(404)
 
     def echo(self, **kwargs):
-        self.finish_json(kwargs)
+        self.finish(kwargs)
 
 
 class ProjectAPIHandler(BaseAPIHandler):
     def list(self):
-        return self.finish_json(
+        return self.finish(
             config.get('projects', [])
         )
 
@@ -63,9 +63,9 @@ class ProjectAPIHandler(BaseAPIHandler):
             if len(config['projects']) == 1:
                 config['projects'][0]['active'] = True
             config.flush()
-            return self.finish_json({'success': True})
+            return self.finish({'success': True})
         else:
-            return self.finish_json({'error': 'Project Already Existed'})
+            return self.finish({'error': 'Project Already Existed'})
 
     def select(self, path):
         path = normalize_path(path)
@@ -75,19 +75,19 @@ class ProjectAPIHandler(BaseAPIHandler):
                 p['active'] = False
             project['active'] = True
             config.flush()
-            self.finish_json({'success': True})
+            self.finish({'success': True})
         else:
-            self.finish_json({'error': 'Project Not Found'})
+            self.finish({'error': 'Project Not Found'})
 
     def update(self, path, options):
         path = normalize_path(path)
         project = config.find_project(path)
         if not project:
-            return self.finish_json({'error': 'Project Not Found'})
+            return self.finish({'error': 'Project Not Found'})
 
         project.update(options)
         config.flush()
-        return self.finish_json({'success': True})
+        return self.finish({'success': True})
 
     def remove(self, path):
         path = normalize_path(path)
@@ -95,9 +95,9 @@ class ProjectAPIHandler(BaseAPIHandler):
         if project:
             config['projects'].remove(project)
             config.flush()
-            return self.finish_json({'success': True})
+            return self.finish({'success': True})
         else:
-            return self.finish_json({'error': 'Project Not Found'})
+            return self.finish({'error': 'Project Not Found'})
 
 
 class FileSystemAPIHandler(BaseAPIHandler):
@@ -113,16 +113,16 @@ class FileSystemAPIHandler(BaseAPIHandler):
                 'type': 'DIR' if is_dir else ext.replace('.', '').lower()
             })
         ret.sort(key=lambda x: (x['type'] != 'DIR', name))
-        return self.finish_json(ret)
+        return self.finish(ret)
 
     def save(self, path, content):
         open(path, 'w').write(content.encode('utf-8'))
-        return self.finish_json({'success': True})
+        return self.finish({'success': True})
 
 
 class AppAPIHandler(BaseAPIHandler):
     def ver(self):
-        self.finish_json(VERSION)
+        self.finish(VERSION)
 
 
 '''

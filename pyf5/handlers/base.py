@@ -11,6 +11,7 @@ from ..logger import *
 class BaseRequestHandler(RequestHandler):
     def __repr__(self):
         return '[' + self.__class__.__name__ + ']'
+
     def post(self, path=None):
         self.handle(path)
 
@@ -30,19 +31,19 @@ class BaseRequestHandler(RequestHandler):
                 raise HTTPError(404)
 
     def default(self):
-        # override me
         raise HTTPError(404)
 
-    def finish_json(self, data):
-        """ 返回json/jsonp的数据
-         如果argument中带有callback参数，则返回jsonp的script，否则返回json数据
+    def finish(self, chunk=None):
+        """ 兼容 JSONP（需要有参数callback）
         """
-        callback = self.get_argument('callback', None)
-        json_str = json.dumps(jsonable(data))
-        debug(self, '->', json_str)
-        if callback:
-            self.set_header('Content-Type', 'application/x-javascript;charset=UTF-8')
-            self.write('%s(%s);' % (callback, json_str))
-        else:
-            self.set_header('Content-Type', 'application/json;charset=UTF-8')
-            self.write(json_str)
+        if chunk:
+            callback = self.get_argument('callback', None)
+            json_str = json.dumps(jsonable(chunk))
+            debug(self, '->', json_str)
+            if callback:
+                self.write('%s(%s);' % (callback, json_str))
+                self.set_header('Content-Type', 'application/x-javascript;charset=UTF-8')
+            else:
+                self.write(json_str)
+                self.set_header('Content-Type', 'application/json;charset=UTF-8')
+        RequestHandler.finish(self)

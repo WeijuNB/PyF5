@@ -1,4 +1,5 @@
 #coding:utf-8
+import mimetypes
 import tornado
 from tornado import httpclient
 from tornado.web import asynchronous, StaticFileHandler, RequestHandler, HTTPError
@@ -16,6 +17,20 @@ class StaticRequestHandler(StaticFileHandler):
     # noinspection PyMethodOverriding
     def initialize(self):
         StaticFileHandler.initialize(self, self.file_path)
+
+    @classmethod
+    def get_content(cls, abspath, start=None, end=None):
+        mime_type, encoding = mimetypes.guess_type(abspath)
+
+        if mime_type in ['text/html', 'text/css']:
+            content = ''.join((StaticFileHandler.get_content(abspath, start, end)))
+            if mime_type == 'text/html':
+                content = process_html(content)
+            elif mime_type == 'text/css':
+                content = process_css(content)
+            return content
+        else:
+            return StaticFileHandler.get_content(abspath, start, end)
 
     def set_extra_headers(self, path):
         self.set_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
@@ -73,10 +88,10 @@ class DynamicRequestHandler(RequestHandler):
                                 self.add_header('Set-Cookie', raw_cookie)
 
                 if response.body:
-                    content_type = response.headers.get('Content-Type', '')
-                    if content_type and 'text/html' in content_type:
+                    content_type = response.headers.get('Content-Type', '') or ''
+                    if 'text/html' in content_type:
                         body = process_html(response.body)
-                    elif content_type and 'text/css' in content_type:
+                    elif 'text/css' in content_type:
                         body = process_css(response.body)
                     else:
                         body = response.body
@@ -101,10 +116,10 @@ class DynamicRequestHandler(RequestHandler):
                                              follow_redirects=False,
                                              allow_nonstandard_methods=True)
 
-        client = tornado.httpclient.AsyncHTTPClient()
+        client = httpclient.AsyncHTTPClient()
         try:
             client.fetch(req, handle_response)
-        except tornado.httpclient.HTTPError as e:
+        except httpclient.HTTPError as e:
             if hasattr(e, 'response') and e.response:
                 handle_response(e.response)
             else:
