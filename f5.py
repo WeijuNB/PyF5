@@ -38,7 +38,7 @@ if __name__ == '__main__':
         webbrowser.open_new_tab('http://127.0.0.1:%s/_' % port)
 
     try:
-        ioloop.IOLoop.instance().start()
+        ioloop.IOLoop.current().start()
     except KeyboardInterrupt:
         config.flush()
         info('Exiting...')

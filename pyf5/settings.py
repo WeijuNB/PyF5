@@ -23,9 +23,8 @@ def config_path(app_folder):
 
 VERSION = '4.3.1'
 RELOADER_TAG = '<script id="_f5_script" src="/_/js/reloader.js"></script>'
-CHANGE_DEBOUNCE_TIME = 0.3
-CHANGE_MAX_PULL_TIME = 20
-CHANGE_INIT_PULL_TIME = 1
+
+PUSH_CHANGES_DEBOUNCE_TIME = 0.3
 
 # 默认不监控变更的文件/目录
 DEFAULT_MUTE_LIST = [
