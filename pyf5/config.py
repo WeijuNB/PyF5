@@ -28,6 +28,12 @@ class Config(DictStorage):
         DictStorage.__init__(self, path)
         self.setdefault('projects', [])
 
+    def current_project(self):
+        for project in self['projects']:
+            if project['active']:
+                return project
+        return None
+
     def find_project(self, path):
         for project in self['projects']:
             if project['path'] == path:

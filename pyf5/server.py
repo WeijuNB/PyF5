@@ -9,6 +9,7 @@ autoreload.start = lambda: None  # hack to disable autoreload and keep other deb
 from .settings import RESOURCE_FOLDER
 from .handlers.api import ProjectAPIHandler, FileSystemAPIHandler, AppAPIHandler
 from .handlers.changes import ChangeRequestHandler
+from .handlers.project import route_project_request
 
 
 class ResourceHandler(StaticFileHandler):
@@ -29,7 +30,7 @@ routes = [
     (r'/_/api/app/(.*)', AppAPIHandler),
     (r'/_/?', DashboardHandler),
     (r'/_/(.+)', ResourceHandler, {'path': RESOURCE_FOLDER}),
-    (r'/(.*?)', ProjectRequestHandler),
+    (r'/(.*?)', route_project_request),
 ]
 
 application = Application(

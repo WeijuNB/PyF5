@@ -301,7 +301,12 @@
 
 
 
-libs = ['underscore', 'angular', 'services/api', 'ngRoute', 'mgcrea.ngStrap'
+libs = [ 'underscore', 'angular',
+    'ngRoute',
+    'mgcrea.ngStrap'
+
+    'services/api',
+
     'controllers/IndexController',
     'controllers/FilesController',
     'controllers/SettingsController',

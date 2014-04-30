@@ -37,7 +37,7 @@ class BaseAPIHandler(BaseRequestHandler):
                         data.update(json_data)
                     except:
                         pass
-                debug('[' + self.__class__.__name__ + ']', '<-', path, data)
+                debug(self, '<-', path, data)
                 self.__getattribute__(path)(**data)
             else:
                 raise HTTPError(404)
@@ -57,7 +57,7 @@ class ProjectAPIHandler(BaseAPIHandler):
         project = config.find_project(path)
         if not project:
             config['projects'].append({
-                'path': path
+                'path': path,
                 'mode': 'static'
             })
             if len(config['projects']) == 1:

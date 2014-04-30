@@ -9,6 +9,8 @@ from ..logger import *
 
 
 class BaseRequestHandler(RequestHandler):
+    def __repr__(self):
+        return '[' + self.__class__.__name__ + ']'
     def post(self, path=None):
         self.handle(path)
 
@@ -37,7 +39,7 @@ class BaseRequestHandler(RequestHandler):
         """
         callback = self.get_argument('callback', None)
         json_str = json.dumps(jsonable(data))
-        debug('[' + self.__class__.__name__ + ']', '->', json_str)
+        debug(self, '->', json_str)
         if callback:
             self.set_header('Content-Type', 'application/x-javascript;charset=UTF-8')
             self.write('%s(%s);' % (callback, json_str))
