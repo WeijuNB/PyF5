@@ -1,16 +1,49 @@
 #coding:utf-8
+from __future__ import division, print_function, absolute_import
 import os
 import sys
 import time
 
 from tornado import ioloop
 from watchdog.events import FileSystemEventHandler, FileModifiedEvent, \
-    EVENT_TYPE_MOVED, EVENT_TYPE_DELETED, EVENT_TYPE_CREATED
+    EVENT_TYPE_MOVED, EVENT_TYPE_DELETED, EVENT_TYPE_CREATED, LoggingEventHandler
 from watchdog.observers import Observer
 
-from pyf5.models import Change
-from pyf5.settings import DEFAULT_MUTE_LIST, APP_FOLDER, NODE_BIN_PATH
-from pyf5.utils import get_rel_path, path_is_parent, normalize_path, run_cmd
+from .logger import *
+from .config import config
+from .settings import DEFAULT_MUTE_LIST, APP_FOLDER
+from .utils import path_is_parent, normalize_path, run_cmd
+
+
+class Watcher(FileSystemEventHandler):
+    def __init__(self):
+        self.observer = Observer()
+        self.observer.start()
+        self.path = None
+
+    def watch(self, path):
+        if path != self.path:
+            info(self, 'watch', path)
+            self.observer.unschedule_all()
+            self.observer.schedule(self, path, True)
+            self.path = path
+
+    def stop(self):
+        debug(self, 'stop watch all')
+        self.observer.unschedule_all()
+
+    def on_any_event(self, event):
+        debug(self, 'change', event)
+
+    def __repr__(self):
+        return '[{}]'.format(self.__class__.__name__)
+
+watcher = Watcher()
+project = config.current_project()
+if project:
+    watcher.watch(project['path'])
+
+
 
 
 class ChangesKeeper(object):
@@ -64,7 +97,7 @@ class ChangesWatcher(FileSystemEventHandler):
         for mute_list in [keeper.mute_list for keeper in self.task_map.values()]:
             for mute_path in mute_list:
                 if path_is_parent(mute_path, change.path):
-                    print '...', change.type, change.path
+                    print('...', change.type, change.path)
                     return
 
         # 寻找当前change对应的垃圾change，找到后删除；未找到则添加当前change
@@ -72,10 +105,10 @@ class ChangesWatcher(FileSystemEventHandler):
         if trash_changes:
             for change in trash_changes:
                 self.changes.remove(change)
-                print '-  ', change.type, change.path
+                print('-  ', change.type, change.path)
         else:
             self.changes.append(change)
-            print '+  ', change.type, change.path
+            print('+  ', change.type, change.path)
             self.compile_if_needed(change)
 
         ioloop.IOLoop.instance().add_callback(lambda: self.remove_outdated_changes(30))
@@ -100,16 +133,16 @@ class ChangesWatcher(FileSystemEventHandler):
             if project.compileLess:
                 output_path = base_path + '.css'
                 run_cmd('%s bundled/less/bin/lessc %s %s' % (NODE_BIN_PATH, input_path, output_path))
-                print '.less ->- .css', change.path, time.time() - begin_time, 'seconds'
+                print('.less ->- .css', change.path, time.time() - begin_time, 'seconds')
             else:
-                print '.less -X- .css', change.path, '(OFF by settings)'
+                print('.less -X- .css', change.path, '(OFF by settings)')
 
         elif ext == '.coffee':
             if project.compileCoffee:
                 run_cmd('%s bundled/coffee/bin/coffee --compile %s' % (NODE_BIN_PATH, input_path))
-                print '.coffee ->- .js', change.path, time.time() - begin_time, 'seconds'
+                print('.coffee ->- .js', change.path, time.time() - begin_time, 'seconds')
             else:
-                print '.coffee -X- .js', change.path, '(OFF by settings)'
+                print('.coffee -X- .js', change.path, '(OFF by settings)')
 
     def check_folder_change(self, folder_path):
         if sys.platform.startswith('win') or \

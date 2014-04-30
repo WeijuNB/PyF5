@@ -14,7 +14,7 @@ from .handlers.project import route_project_request
 
 
 routes = [
-    (r'/_/change', ChangeRequestHandler),
+    (r'/_/changes', ChangeRequestHandler),
     (r'/_/api/project/(.*)', ProjectAPIHandler),
     (r'/_/api/fs/(.*)', FileSystemAPIHandler),
     (r'/_/api/app/(.*)', AppAPIHandler),
@@ -125,5 +125,3 @@ application = Application(
 #         ChangeRequestHandler.broadcast_changes()
 
 
-if __name__ == "__main__":
-    pass

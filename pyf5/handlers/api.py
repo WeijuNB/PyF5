@@ -2,17 +2,12 @@
 from __future__ import absolute_import, division, print_function
 import os
 import json
-import socket
-import time
-from functools import partial
 
-from tornado import ioloop
-from tornado.httpclient import AsyncHTTPClient
-from tornado.web import RequestHandler, asynchronous, os, HTTPError
+from tornado.web import HTTPError
 
-
+from ..settings import VERSION
 from ..config import config
-from ..settings import VERSION, RESOURCE_FOLDER
+from ..watcher import watcher
 from ..utils import normalize_path
 from ..logger import *
 from .base import BaseRequestHandler
@@ -47,7 +42,14 @@ class BaseAPIHandler(BaseRequestHandler):
 
 
 class ProjectAPIHandler(BaseAPIHandler):
+    def _ensure_watched(self):
+        project = config.current_project()
+        if project:
+            return watcher.watch(project['path'])
+        return watcher.stop()
+
     def list(self):
+        self._ensure_watched()
         return self.finish(
             config.get('projects', [])
         )
@@ -63,6 +65,7 @@ class ProjectAPIHandler(BaseAPIHandler):
             if len(config['projects']) == 1:
                 config['projects'][0]['active'] = True
             config.flush()
+            self._ensure_watched()
             return self.finish({'success': True})
         else:
             return self.finish({'error': 'Project Already Existed'})
@@ -75,6 +78,7 @@ class ProjectAPIHandler(BaseAPIHandler):
                 p['active'] = False
             project['active'] = True
             config.flush()
+            self._ensure_watched()
             self.finish({'success': True})
         else:
             self.finish({'error': 'Project Not Found'})
@@ -87,6 +91,7 @@ class ProjectAPIHandler(BaseAPIHandler):
 
         project.update(options)
         config.flush()
+        self._ensure_watched()
         return self.finish({'success': True})
 
     def remove(self, path):
@@ -95,6 +100,7 @@ class ProjectAPIHandler(BaseAPIHandler):
         if project:
             config['projects'].remove(project)
             config.flush()
+            self._ensure_watched()
             return self.finish({'success': True})
         else:
             return self.finish({'error': 'Project Not Found'})

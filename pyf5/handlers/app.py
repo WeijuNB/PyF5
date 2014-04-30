@@ -11,4 +11,4 @@ class ResourceHandler(StaticFileHandler):
 class DashboardHandler(RequestHandler):
     def get(self, *args, **kwargs):
         content = open(os.path.join(RESOURCE_FOLDER, 'index.html')).read()
-        self.write(content)
+        self.finish(content)

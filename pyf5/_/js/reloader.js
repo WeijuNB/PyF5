@@ -322,7 +322,7 @@
 
     function queryChanges() {
         var ts = cookie('_F5TS') ? cookie('_F5TS') : time(),
-            url = f5RootUrl + 'api/changes?callback=_F5.handleChanges&ts=' + ts + '&delay=' + pullDelay;
+            url = f5RootUrl + 'changes?callback=_F5.handleChanges&ts=' + ts + '&delay=' + pullDelay;
 
         pullDelay += 2;
         if (pullDelay > 20) {
@@ -345,7 +345,7 @@
         retryCount = 0;
 
         trace(data);
-        if (data['status'] == 'ok') {
+        if (!data.error) {
             cookie('_F5TS', parseFloat(data['time']), {expires: 30});
             changes = data['changes'];
             delay = (parseFloat(data['delay']) || 0) * 1000;
