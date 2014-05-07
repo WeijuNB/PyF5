@@ -22,9 +22,9 @@ def config_path(app_folder):
 
 
 VERSION = '4.3.1'
-RELOADER_TAG = '<script id="_f5_script" src="/_/js/reloader.js"></script>'
+RELOADER_TAG = '<script src="/_f5.js"></script>'
 
-PUSH_CHANGES_DEBOUNCE_TIME = 0.3
+PUSH_CHANGES_DEBOUNCE_TIME = 0.5
 
 # 默认不监控变更的文件/目录
 DEFAULT_MUTE_LIST = [

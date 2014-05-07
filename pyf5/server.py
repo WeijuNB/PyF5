@@ -1,5 +1,6 @@
 #coding:utf-8
 from __future__ import division, print_function, absolute_import
+import os
 
 from tornado.web import Application
 from tornado import autoreload
@@ -14,6 +15,7 @@ from .handlers.project import route_project_request
 
 
 routes = [
+    (r'/(_f5.js)', ResourceHandler, {'path': os.path.join(RESOURCE_FOLDER, 'js')}),
     (r'/_/changes', ChangeRequestHandler),
     (r'/_/api/project/(.*)', ProjectAPIHandler),
     (r'/_/api/fs/(.*)', FileSystemAPIHandler),

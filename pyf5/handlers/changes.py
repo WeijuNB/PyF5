@@ -7,8 +7,8 @@ import time
 from tornado import ioloop
 from tornado.web import asynchronous
 from watchdog.events import EVENT_TYPE_DELETED, EVENT_TYPE_CREATED, EVENT_TYPE_MODIFIED
-from settings import PUSH_CHANGES_DEBOUNCE_TIME
 
+from ..settings import PUSH_CHANGES_DEBOUNCE_TIME
 from ..utils import path_is_parent
 from ..config import config
 from ..logger import *
@@ -18,7 +18,7 @@ from .base import BaseRequestHandler
 class ChangeRequestHandler(BaseRequestHandler):
     handlers = set()
     changes = []
-    debounce_timeout = None
+    push_debounce_timer = None
 
     def __init__(self, *args, **kwargs):
         BaseRequestHandler.__init__(self, *args, **kwargs)
@@ -26,28 +26,33 @@ class ChangeRequestHandler(BaseRequestHandler):
 
         self.callback_name = self.get_argument('callback', '_F5.handleChanges')
         self.delay = int(self.get_argument('delay', 20))
-        self.query_time = time.time()
+        self.query_time = int(self.get_argument('delay', 20))
 
-        self.reply_timeout = None
+        self.reply_timer = None
 
     @asynchronous
     def get(self, *args, **kwargs):
-        self.reply_timeout = ioloop.IOLoop.current().add_timeout(timedelta(seconds=self.delay), partial(self.respond_changes, []))
+        self.reply_timer = ioloop.IOLoop.current().add_timeout(timedelta(seconds=self.delay), partial(self.respond_changes, []))
 
     def respond_changes(self, changes):
-        data = {
-            'changes': changes
-        }
-        self.finish(data)
+        ret = {'changes': {}}
+
+        for change in changes:
+            ret['changes'][change['path']] = {
+                'time': change['time'],
+                'type': change['type']
+            }
+
+        self.finish(ret)
 
     def on_finish(self):
         self.handlers.remove(self)
-        if self.reply_timeout:
-            ioloop.IOLoop.current().remove_timeout(self.reply_timeout)
-            self.reply_timeout = None
+        if self.reply_timer:
+            ioloop.IOLoop.current().remove_timeout(self.reply_timer)
+            self.reply_timer = None
 
     @classmethod
-    def add_change(cls, change):
+    def add_change(cls, change):  # change: time, path, type
         project = config.current_project()
         if not project or not path_is_parent(project['path'], change['path']):
             return
@@ -64,10 +69,10 @@ class ChangeRequestHandler(BaseRequestHandler):
             debug('+', change)
             cls.changes.append(change)
 
-        if cls.debounce_timeout:
-            ioloop.IOLoop.current().remove_timeout(cls.debounce_timeout)
+        if cls.push_debounce_timer:
+            ioloop.IOLoop.current().remove_timeout(cls.push_debounce_timer)
 
-        cls.debounce_timeout = ioloop.IOLoop.current().add_timeout(
+        cls.push_debounce_timer = ioloop.IOLoop.current().add_timeout(
             timedelta(seconds=PUSH_CHANGES_DEBOUNCE_TIME),
             cls.push_changes
         )
@@ -98,7 +103,7 @@ class ChangeRequestHandler(BaseRequestHandler):
 
     @classmethod
     def push_changes(cls):
-        debug('push changes')
+        debug('push changes', cls.changes)
         for handler in list(cls.handlers):
             handler.respond_changes(cls.changes)
         for change in cls.changes:
@@ -109,7 +114,7 @@ class ChangeRequestHandler(BaseRequestHandler):
                 mark = '-'
             elif change['type'] == EVENT_TYPE_MODIFIED:
                 mark = '*'
-            debug('->', mark, change['path'])
+            info('->', mark, change['path'])
         cls.changes = []
 
 

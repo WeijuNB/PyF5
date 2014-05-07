@@ -7,11 +7,7 @@
   main = function(_, angular) {
     var index;
     index = angular.module('index', ['ngRoute', 'mgcrea.ngStrap', 'app']);
-    index.run(function(api) {
-      return console.log('run');
-    });
     return angular.element(document).ready(function() {
-      console.log('ready');
       return angular.bootstrap(document, ['index']);
     });
   };
