@@ -23,8 +23,10 @@ def process_css(content):
     @import "common.css" screen, projection;
     @import url('landscape.css') screen and (orientation:landscape);
     """
-    import_urls = re.findall(r'@import .*?[\'\"](.*?)[\'\"].*?;', content)
+    import_urls = re.findall(r'''@import .*?['"](.*?)['"].*?;''', content)
     for url in import_urls:
         new_url = url + '?_f5=%s' % time.time()
         content = content.replace(url, new_url)
+
+    # todo: cache bust all url('xxx')
     return content
