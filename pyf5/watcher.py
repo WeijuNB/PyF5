@@ -50,7 +50,7 @@ class Watcher(FileSystemEventHandler):
                 self.on_any_event(FileModifiedEvent(file_path))
 
     def on_any_event(self, event):
-        debug(self, '<-', event)
+        debug(self, '<-', 'D' if event.is_directory else 'F', event.event_type, event.src_path)
 
         if event.is_directory:
             if not sys.platform.startswith('win'):

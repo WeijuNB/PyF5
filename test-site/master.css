@@ -3,3 +3,8 @@
 h1 {
     color: black;
 }
+
+.image {
+    background-image: url(p0.png);
+    height: 100px;
+}

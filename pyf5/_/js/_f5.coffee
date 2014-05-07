@@ -108,9 +108,12 @@ F5 = ->
         ext = getFileExtension(path)
         if ext in ['.css']
             updateCSS(path)
+        else if ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']
+            updateImage(path)
         else if ext in ['.js']
             updateScript(path)
-
+        else
+            reload()
 
     findStyleSheet = (name) ->
         for ss in document.styleSheets
@@ -125,9 +128,7 @@ F5 = ->
                             return ss
         return null
 
-
-    updateCSS = (path) ->
-        styleSheet = findStyleSheet(getFileName(path))
+    reattachStyleSheet = (styleSheet) ->
         node = styleSheet.ownerNode or styleSheet.owningElement
 
         link = document.createElement 'link'
@@ -137,11 +138,22 @@ F5 = ->
         node.parentElement.appendChild(link)
         node.parentElement.removeChild(node)
 
+    updateCSS = (path) ->
+        styleSheet = findStyleSheet(getFileName(path))
+        reattachStyleSheet(styleSheet)
+
+    updateImage = (path) ->
+        for image in document.images
+            if equals(image.src, path)
+                image.src = bustCache(image.src)
+
+        for ss in document.styleSheets
+            reattachStyleSheet(ss)  # todo: improve performance
+
     updateScript = (path) ->
         for script in document.scripts
             if equals(script.src, path)
                 reload()
-
 
     @handleChanges = (resp) =>
         retryCount = 0

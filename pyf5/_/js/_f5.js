@@ -118,7 +118,7 @@
   };
 
   F5 = function() {
-    var API_ROOT, MAX_RETRY, applyChange, findStyleSheet, reload, retryCount, updateCSS, updateScript;
+    var API_ROOT, MAX_RETRY, applyChange, findStyleSheet, reattachStyleSheet, reload, retryCount, updateCSS, updateImage, updateScript;
     API_ROOT = (function() {
       var script, scripts, src, _i, _len;
       scripts = document.getElementsByTagName('script');
@@ -145,8 +145,12 @@
       ext = getFileExtension(path);
       if (ext === '.css') {
         return updateCSS(path);
+      } else if (ext === '.png' || ext === '.jpg' || ext === '.jpeg' || ext === '.gif' || ext === '.bmp') {
+        return updateImage(path);
       } else if (ext === '.js') {
         return updateScript(path);
+      } else {
+        return reload();
       }
     };
     findStyleSheet = function(name) {
@@ -172,15 +176,36 @@
       }
       return null;
     };
-    updateCSS = function(path) {
-      var link, node, styleSheet;
-      styleSheet = findStyleSheet(getFileName(path));
+    reattachStyleSheet = function(styleSheet) {
+      var link, node;
       node = styleSheet.ownerNode || styleSheet.owningElement;
       link = document.createElement('link');
       link.href = bustCache(node.href);
       link.rel = 'stylesheet';
       node.parentElement.appendChild(link);
       return node.parentElement.removeChild(node);
+    };
+    updateCSS = function(path) {
+      var styleSheet;
+      styleSheet = findStyleSheet(getFileName(path));
+      return reattachStyleSheet(styleSheet);
+    };
+    updateImage = function(path) {
+      var image, ss, _i, _j, _len, _len1, _ref, _ref1, _results;
+      _ref = document.images;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        image = _ref[_i];
+        if (equals(image.src, path)) {
+          image.src = bustCache(image.src);
+        }
+      }
+      _ref1 = document.styleSheets;
+      _results = [];
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        ss = _ref1[_j];
+        _results.push(reattachStyleSheet(ss));
+      }
+      return _results;
     };
     updateScript = function(path) {
       var script, _i, _len, _ref, _results;
