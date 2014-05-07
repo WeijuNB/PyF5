@@ -56,39 +56,33 @@ getCookie = (name, defaultValue) ->
     return defaultValue or null
 
 
-getExt = (path) ->
-    i = path.lastIndexOf('/')
-    return '' if i < 0
-
-    name = path.substring(i)
-    li = /(\.[^\.\/\?&]+)[^\/]*$/.exec(name)
-    if li?.length
-        return li[1]
-    return ''
-
 getFileName = (path) ->
-    i = path.lastIndexOf('/')
-    return '' if i < 0
+    return '' if not path
+    return path.replace(/\?.*$/, '').replace(/^.*\//, '')
 
-    name = path.substring(i)
-    li = /([^\/\?&]+)[^\/]*$/.exec(name)
-    if li.length
-        return li[1]
-    return ''
+
+getFileExtension = (path) ->
+    base = getFileName(path);
+    matched = base.match(/\.[^.]+$/);
+    return if matched then matched[0].toLowerCase() else '';
+
+
+equals = (url, path) ->
+    return url and path and getFileName(url) == getFileName(path)
 
 
 bustCache = (url) ->
     pattern = /_f5=[\d\.]+/
     replacement = "_f5=#{Math.random()}"
 
-    console.debug 'bustCache', url
+    console.log 'bustCache', url
     if pattern.test(url)
         url = url.replace(pattern, replacement)
     else if '?' in url
         url += ('&' + replacement)
     else
         url += ('?' + replacement)
-    console.debug 'bustCache', '->', url
+    console.log 'bustCache', '->', url
     return url
 
 
@@ -98,43 +92,63 @@ F5 = ->
         for script in scripts
             src = script.src
             if src.indexOf('/_f5.js') > -1
-                console.debug 'apiRootUrl', "http://#{parseUri(src).hostname}/_/"
+                console.log 'apiRootUrl', "http://#{parseUri(src).hostname}/_/"
                 return "http://#{parseUri(src).hostname}/_/"
         return '/'
     MAX_RETRY = 3
 
     retryCount = 0
 
+    reload = ->
+        location.reload(true)
+
     applyChange = (path, type) ->
         return if type not in ['modified', 'created']
 
-        ext = getExt(path)
+        ext = getFileExtension(path)
         if ext in ['.css']
             updateCSS(path)
+        else if ext in ['.js']
+            updateScript(path)
 
+
+    findStyleSheet = (name) ->
+        for ss in document.styleSheets
+            if equals(ss.href, name)
+                return ss
+            else
+                if ss.cssText and ss.cssText.indexOf(name) > 0
+                    return ss
+                else
+                    for rule in ss.rules
+                        if equals(rule.href, name)
+                            return ss
+        return null
 
 
     updateCSS = (path) ->
-        for element in document.getElementsByTagName 'link'
-            href = element.href
-            ext = getExt(href)
-            console.debug 'files', getFileName(href), getFileName(path)
-            if ext in ['.css'] and getFileName(href) == getFileName(path)
-                element.href = bustCache(element.href)
-                console.debug 'updateCSS', element.href
-                break
+        styleSheet = findStyleSheet(getFileName(path))
+        node = styleSheet.ownerNode or styleSheet.owningElement
+
+        link = document.createElement 'link'
+        link.href = bustCache(node.href)
+        link.rel = 'stylesheet'
+
+        node.parentElement.appendChild(link)
+        node.parentElement.removeChild(node)
+
+    updateScript = (path) ->
+        for script in document.scripts
+            if equals(script.src, path)
+                reload()
 
 
     @handleChanges = (resp) =>
         retryCount = 0
-        changeTime = -Math.random()
+        setCookie('_f5_reply_time', resp.time)
 
         for path, info of resp.changes
-            if info.time > changeTime
-                changeTime = info.time
             applyChange(path, info.type)
-
-        setCookie('_f5_ct', changeTime)
 
         console.log 'handleChanges', resp.changes
         setTimeout =>
@@ -142,8 +156,12 @@ F5 = ->
         , 100
 
     @queryChanges = ->
-        lastChangeTime = parseFloat(getCookie('_f5_ct', -Math.random()))
-        url = "#{API_ROOT}changes?callback=_F5.handleChanges&qt=#{lastChangeTime}"
+        url = "#{API_ROOT}changes?callback=_F5.handleChanges"
+
+        lastChangeTime = parseFloat(getCookie('_f5_reply_time', -Math.random()))
+        if lastChangeTime
+            url += "&qt=#{lastChangeTime}"
+
         getScript url, =>
             retryCount += 1
             if retryCount >= MAX_RETRY

@@ -25,6 +25,6 @@ def process_css(content):
     """
     import_urls = re.findall(r'@import .*?[\'\"](.*?)[\'\"].*?;', content)
     for url in import_urls:
-        new_url = url + '?_=%s' % time.time()
+        new_url = url + '?_f5=%s' % time.time()
         content = content.replace(url, new_url)
     return content

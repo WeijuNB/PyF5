@@ -8,7 +8,7 @@ from tornado import ioloop
 from tornado.web import asynchronous
 from watchdog.events import EVENT_TYPE_DELETED, EVENT_TYPE_CREATED, EVENT_TYPE_MODIFIED
 
-from ..settings import PUSH_CHANGES_DEBOUNCE_TIME
+from ..settings import PUSH_CHANGES_DEBOUNCE_TIME, DEFAULT_MUTE_LIST
 from ..utils import path_is_parent
 from ..config import config
 from ..logger import *
@@ -26,7 +26,7 @@ class ChangeRequestHandler(BaseRequestHandler):
 
         self.callback_name = self.get_argument('callback', '_F5.handleChanges')
         self.delay = int(self.get_argument('delay', 20))
-        self.query_time = int(self.get_argument('delay', 20))
+        self.query_time = float(self.get_argument('qt', time.time()))
 
         self.reply_timer = None
 
@@ -35,7 +35,10 @@ class ChangeRequestHandler(BaseRequestHandler):
         self.reply_timer = ioloop.IOLoop.current().add_timeout(timedelta(seconds=self.delay), partial(self.respond_changes, []))
 
     def respond_changes(self, changes):
-        ret = {'changes': {}}
+        ret = {
+            'changes': {},
+            'time': time.time(),
+        }
 
         for change in changes:
             ret['changes'][change['path']] = {
@@ -58,6 +61,9 @@ class ChangeRequestHandler(BaseRequestHandler):
             return
 
         # todo: filter change
+        for mute_name in DEFAULT_MUTE_LIST:
+            if mute_name in [x.lower() for x in change['path'].split('/')]:
+                return
 
         trash_changes = cls.find_trash_changes(change)
         if trash_changes:
