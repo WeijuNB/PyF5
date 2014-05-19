@@ -2,13 +2,14 @@
 from __future__ import print_function, division, absolute_import
 from datetime import timedelta
 from functools import partial
+import os
 import time
 
 from tornado import ioloop
 from tornado.web import asynchronous
 from watchdog.events import EVENT_TYPE_DELETED, EVENT_TYPE_CREATED, EVENT_TYPE_MODIFIED
 
-from ..settings import PUSH_CHANGES_DEBOUNCE_TIME, DEFAULT_MUTE_LIST
+from ..settings import PUSH_CHANGES_DEBOUNCE_TIME, DEFAULT_EXTENSION_LIST
 from ..utils import path_is_parent
 from ..config import config
 from ..logger import *
@@ -61,9 +62,9 @@ class ChangeRequestHandler(BaseRequestHandler):
             return
 
         # todo: filter change
-        for mute_name in DEFAULT_MUTE_LIST:
-            if mute_name in [x.lower() for x in change['path'].split('/')]:
-                return
+        _, ext = os.path.splitext(change['path'])
+        if ext.lower() not in DEFAULT_EXTENSION_LIST:
+            return
 
         trash_changes = cls.find_trash_changes(change)
         if trash_changes:

@@ -1,6 +1,8 @@
 import os
+
 from tornado.web import StaticFileHandler, RequestHandler
-from settings import RESOURCE_FOLDER
+
+from ..settings import RESOURCE_FOLDER
 
 
 class ResourceHandler(StaticFileHandler):

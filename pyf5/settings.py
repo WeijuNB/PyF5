@@ -24,12 +24,16 @@ def config_path(app_folder):
 VERSION = '4.3.1'
 RELOADER_TAG = '<script src="/_f5.js"></script>'
 
-PUSH_CHANGES_DEBOUNCE_TIME = 0.5
+PUSH_CHANGES_DEBOUNCE_TIME = 0.3
 
 # 默认不监控变更的文件/目录
-DEFAULT_MUTE_LIST = [
-    '.git',
-    '.idea',
+DEFAULT_EXTENSION_LIST = [
+    '.js',
+    '.css',
+    '.png',
+    '.jpg',
+    '.htm',
+    '.html',
 ]
 
 APP_FOLDER = os.path.dirname(unicode(__file__, sys.getfilesystemencoding()))

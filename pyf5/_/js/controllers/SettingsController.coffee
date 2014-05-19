@@ -1,8 +1,9 @@
 libs = ['angular', '../app', 'services/api']
 define libs, (angular, app) ->
 
-    SettingsController = ($log, $rootScope, $scope, api) ->
+    SettingsController = ($log, $rootScope, $scope, api, $location) ->
         $scope.project = null
+        $scope.f5Port = $location.port
         $rootScope.$watch 'projects', (projects) ->
             for project in projects
                 if project.active

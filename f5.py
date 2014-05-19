@@ -16,7 +16,7 @@ from pyf5.logger import *
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', dest='port', type=int, default=80)
-    parser.add_argument('--debug', dest='debug', type=int, default=0 )
+    parser.add_argument('--debug', dest='debug', type=int, default=0)
     args = parser.parse_args()
 
     server = HTTPServer(application)

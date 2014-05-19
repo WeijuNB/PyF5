@@ -6,8 +6,9 @@
 
   define(libs, function(angular, app) {
     var SettingsController;
-    SettingsController = function($log, $rootScope, $scope, api) {
+    SettingsController = function($log, $rootScope, $scope, api, $location) {
       $scope.project = null;
+      $scope.f5Port = $location.port;
       $rootScope.$watch('projects', function(projects) {
         var project, _i, _len;
         for (_i = 0, _len = projects.length; _i < _len; _i++) {

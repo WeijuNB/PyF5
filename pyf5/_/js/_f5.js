@@ -179,11 +179,15 @@
     reattachStyleSheet = function(styleSheet) {
       var link, node;
       node = styleSheet.ownerNode || styleSheet.owningElement;
-      link = document.createElement('link');
-      link.href = bustCache(node.href);
-      link.rel = 'stylesheet';
-      node.parentElement.appendChild(link);
-      return node.parentElement.removeChild(node);
+      if (node.href) {
+        link = document.createElement('link');
+        link.href = bustCache(node.href);
+        link.rel = 'stylesheet';
+        node.parentElement.appendChild(link);
+        return setTimeout(function() {
+          return node.parentElement.removeChild(node);
+        }, 500);
+      }
     };
     updateCSS = function(path) {
       var styleSheet;
@@ -264,6 +268,6 @@
 
   setTimeout(function() {
     return window._F5.queryChanges();
-  }, 1000);
+  }, 500);
 
 }).call(this);

@@ -4,11 +4,11 @@ import os
 
 from tornado.web import Application
 from tornado import autoreload
-from handlers.app import ResourceHandler, DashboardHandler
 
 autoreload.start = lambda: None  # hack to disable autoreload and keep other debug feature intact
 
 from .settings import RESOURCE_FOLDER
+from .handlers.app import ResourceHandler, DashboardHandler
 from .handlers.api import ProjectAPIHandler, FileSystemAPIHandler, AppAPIHandler
 from .handlers.changes import ChangeRequestHandler
 from .handlers.project import route_project_request

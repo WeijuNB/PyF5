@@ -10,8 +10,25 @@ CSS_EXTENSIONS = ['.css', '.less']
 SPECIAL_EXTENSIONS = HTML_EXTENSIONS + CSS_EXTENSIONS
 
 
+def bust_cache(m):
+    url = m.group(1)
+    if '_f5=' in url:
+        new_url = re.sub('_f5=[^&$]_', '_f5=' + str(time.time()), url)
+    else:
+        if '?' in url:
+            new_url = url + '&_f5=' + str(time.time())
+        else:
+            new_url = url + '?_f5=' + str(time.time())
+
+    ret = m.group(0).replace(url, new_url)
+    return ret
+
+
 def process_html(content):
-    return content.replace('</body>', RELOADER_TAG + '\n</body>')
+    content = content.replace('</body>', RELOADER_TAG + '\n</body>')
+    content = re.sub('''<(?:link[^>]+href|script[^>]+src)=['"]?([^'"\s]+)['"]?''', bust_cache, content, flags=re.IGNORECASE)
+
+    return content
 
 
 def process_css(content):
@@ -30,3 +47,7 @@ def process_css(content):
 
     # todo: cache bust all url('xxx')
     return content
+
+
+if __name__ == '__main__':
+    print process_html('<link href="/sina.css" rel="stylesheet"><script src="a.js">')

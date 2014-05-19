@@ -2,7 +2,7 @@ import logging
 
 logger = logging.getLogger('pyf5')
 logger.setLevel(logging.DEBUG)
-FORMAT = '%(asctime)-15s %(levelname)-5s: %(message)s'
+FORMAT = '%(asctime)-15s %(levelname)-5s: %(message)s'  # todo: shorten time
 logging.basicConfig(format=FORMAT)
 
 

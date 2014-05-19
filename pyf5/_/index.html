@@ -99,7 +99,7 @@
                 </div>
                 <div ng-if="project.mode == 'dynamic'" class="alert alert-info">
                     <i class="glyphicon glyphicon-arrow-right"></i>
-                    <a href="http://{{project.host}}:{{project.port || 80}}" target="_blank" class="alert-link">
+                    <a href="http://{{project.host}}:{{f5Port}}" target="_blank" class="alert-link">
                         {{ project.host }} : {{ project.port || 80 }}
                     </a>
 

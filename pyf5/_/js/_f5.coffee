@@ -131,12 +131,15 @@ F5 = ->
     reattachStyleSheet = (styleSheet) ->
         node = styleSheet.ownerNode or styleSheet.owningElement
 
-        link = document.createElement 'link'
-        link.href = bustCache(node.href)
-        link.rel = 'stylesheet'
+        if node.href
+            link = document.createElement 'link'
+            link.href = bustCache(node.href)
+            link.rel = 'stylesheet'
 
-        node.parentElement.appendChild(link)
-        node.parentElement.removeChild(node)
+            node.parentElement.appendChild(link)
+            setTimeout ->
+                node.parentElement.removeChild(node)
+            , 500
 
     updateCSS = (path) ->
         styleSheet = findStyleSheet(getFileName(path))
@@ -189,4 +192,4 @@ F5 = ->
 window._F5 = new F5()
 setTimeout ->
     window._F5.queryChanges()
-, 1000
+, 500
