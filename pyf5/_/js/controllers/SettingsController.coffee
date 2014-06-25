@@ -29,9 +29,15 @@ define libs, (angular, app) ->
             $scope.hoveringMode = mode
 
         $scope.promptHostPort = ->
-            host_port = prompt '请输入目标服务器名和端口，以":"分割\n（例 "localhost:8080")'
-            return if host_port == null
-            [host, port] = host_port.split(':')
+            address = prompt '请输入目标服务器名和端口，如服务器在本机可只输入端口\n（例 "127.0.0.1:8080" 或 "8080")'
+            match = /([^:]+:)?(\d+)/.exec(address)
+            return if not match
+
+            [_, host, port] = match
+            if host
+                host = host.replace(':', '')
+            host ?= '127.0.0.1'
+
             $scope.project.host = host
             $scope.project.port = parseInt port
             api.project.update($scope.project.path, $scope.project)

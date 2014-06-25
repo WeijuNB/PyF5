@@ -51,12 +51,19 @@
         return $scope.hoveringMode = mode;
       };
       $scope.promptHostPort = function() {
-        var host, host_port, port, _ref;
-        host_port = prompt('请输入目标服务器名和端口，以":"分割\n（例 "localhost:8080")');
-        if (host_port === null) {
+        var address, host, match, port, _;
+        address = prompt('请输入目标服务器名和端口，如服务器在本机可只输入端口\n（例 "127.0.0.1:8080" 或 "8080")');
+        match = /([^:]+:)?(\d+)/.exec(address);
+        if (!match) {
           return;
         }
-        _ref = host_port.split(':'), host = _ref[0], port = _ref[1];
+        _ = match[0], host = match[1], port = match[2];
+        if (host) {
+          host = host.replace(':', '');
+        }
+        if (host == null) {
+          host = '127.0.0.1';
+        }
         $scope.project.host = host;
         $scope.project.port = parseInt(port);
         api.project.update($scope.project.path, $scope.project);

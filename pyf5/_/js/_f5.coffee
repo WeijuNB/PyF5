@@ -123,15 +123,15 @@ F5 = ->
                 if ss.cssText and ss.cssText.indexOf(name) > 0
                     return ss
                 else
-                    for rule in ss.rules
+                    for rule in (ss.rules or [])
                         if equals(rule.href, name)
                             return ss
         return null
 
     reattachStyleSheet = (styleSheet) ->
-        node = styleSheet.ownerNode or styleSheet.owningElement
+        node = styleSheet?.ownerNode or styleSheet?.owningElement
 
-        if node.href
+        if node?.href
             link = document.createElement 'link'
             link.href = bustCache(node.href)
             link.rel = 'stylesheet'

@@ -26,7 +26,7 @@ RELOADER_TAG = '<script src="/_f5.js"></script>'
 
 PUSH_CHANGES_DEBOUNCE_TIME = 0.3
 
-# 默认不监控变更的文件/目录
+# 默认监控变更的文件/目录
 DEFAULT_EXTENSION_LIST = [
     '.js',
     '.css',
@@ -34,6 +34,7 @@ DEFAULT_EXTENSION_LIST = [
     '.jpg',
     '.htm',
     '.html',
+    '.jade',
 ]
 
 APP_FOLDER = os.path.dirname(unicode(__file__, sys.getfilesystemencoding()))

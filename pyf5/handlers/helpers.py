@@ -25,8 +25,8 @@ def bust_cache(m):
 
 
 def process_html(content):
+    content = re.sub('''<(?:link[^>]+href)=['"]?([^'"\s]+)['"]?''', bust_cache, content, flags=re.IGNORECASE)
     content = content.replace('</body>', RELOADER_TAG + '\n</body>')
-    content = re.sub('''<(?:link[^>]+href|script[^>]+src)=['"]?([^'"\s]+)['"]?''', bust_cache, content, flags=re.IGNORECASE)
 
     return content
 

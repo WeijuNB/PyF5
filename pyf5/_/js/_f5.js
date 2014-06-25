@@ -164,7 +164,7 @@
           if (ss.cssText && ss.cssText.indexOf(name) > 0) {
             return ss;
           } else {
-            _ref1 = ss.rules;
+            _ref1 = ss.rules || [];
             for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
               rule = _ref1[_j];
               if (equals(rule.href, name)) {
@@ -178,8 +178,8 @@
     };
     reattachStyleSheet = function(styleSheet) {
       var link, node;
-      node = styleSheet.ownerNode || styleSheet.owningElement;
-      if (node.href) {
+      node = (styleSheet != null ? styleSheet.ownerNode : void 0) || (styleSheet != null ? styleSheet.owningElement : void 0);
+      if (node != null ? node.href : void 0) {
         link = document.createElement('link');
         link.href = bustCache(node.href);
         link.rel = 'stylesheet';
